@@ -8,6 +8,7 @@ import VerifiedDocuments from './pages/VerifiedDocuments';
 import VerificationHistory from './pages/VerificationHistory';
 import AdminDashboard from './pages/AdminDashboard';
 import SettingsPage from './pages/SettingsPage';
+import EncoderDecoderPage from './pages/EncoderDecoderPage';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
             <Route path="/history" element={<VerificationHistory />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/encode" element={<EncoderDecoderPage />} />
           </Routes>
         </div>
       </div>

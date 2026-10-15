@@ -7,7 +7,8 @@ import {
   History, 
   ShieldAlert, 
   Settings,
-  Sparkles
+  Sparkles,
+  Code2
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -17,6 +18,7 @@ const Sidebar = () => {
     { path: '/documents', label: 'Verified Documents', icon: FileCheck2 },
     { path: '/history', label: 'Verification History', icon: History },
     { path: '/admin', label: 'Admin Dashboard', icon: ShieldAlert },
+    { path: '/encode', label: 'Encoding Lab', icon: Code2, badge: 'NEW' },
     { path: '/settings', label: 'Settings', icon: Settings },
   ];
 
