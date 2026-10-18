@@ -45,6 +45,7 @@ import {
   decodeAndVerifyDocument,
   getDownloadUrl
 } from '../services/api';
+import { scanDocumentWithOCR } from '../services/ocrService';
 
 // ─── Tab definitions ──────────────────────────────────────────────────────────
 const TABS = [
@@ -893,6 +894,12 @@ const MarksheetAITab = () => {
   const [institution, setInstitution] = useState('');
   const [passingYear, setPassingYear] = useState('');
 
+  // OCR Auto-Detection state
+  const [ocrScanning, setOcrScanning] = useState(false);
+  const [ocrProgress, setOcrProgress] = useState(0);
+  const [ocrDetectedInfo, setOcrDetectedInfo] = useState(null);
+  const [extractedOcrText, setExtractedOcrText] = useState('');
+
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
@@ -908,22 +915,47 @@ const MarksheetAITab = () => {
     else if (e.type === 'dragleave') setDragActive(false);
   };
 
+  const processSelectedFile = async (selectedFile) => {
+    setFile(selectedFile);
+    setError(null);
+    setResult(null);
+    setOcrDetectedInfo(null);
+    setExtractedOcrText('');
+
+    // If it's an image, run in-browser AI OCR scanning to detect text and auto-fill
+    if (selectedFile.type && selectedFile.type.startsWith('image/')) {
+      setOcrScanning(true);
+      setOcrProgress(15);
+      try {
+        const ocr = await scanDocumentWithOCR(selectedFile, (p) => setOcrProgress(p));
+        if (ocr && ocr.success && ocr.rawText) {
+          setExtractedOcrText(ocr.rawText);
+          setOcrDetectedInfo(ocr);
+          if (ocr.studentName) setStudentName(ocr.studentName);
+          if (ocr.rollNumber) setRollNumber(ocr.rollNumber);
+          if (ocr.institution) setInstitution(ocr.institution);
+          if (ocr.passingYear) setPassingYear(ocr.passingYear);
+        }
+      } catch (err) {
+        console.warn('OCR processing skipped or failed:', err);
+      } finally {
+        setOcrScanning(false);
+      }
+    }
+  };
+
   const handleDrop = (e) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setFile(e.dataTransfer.files[0]);
-      setError(null);
-      setResult(null);
+      processSelectedFile(e.dataTransfer.files[0]);
     }
   };
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
-      setError(null);
-      setResult(null);
+      processSelectedFile(e.target.files[0]);
     }
   };
 
@@ -935,12 +967,15 @@ const MarksheetAITab = () => {
     setRollNumber('');
     setInstitution('');
     setPassingYear('');
+    setExtractedOcrText('');
+    setOcrDetectedInfo(null);
+    setOcrScanning(false);
     setResult(null);
     setError(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleEncodeAndRegister = async () => {
+  const handleEncodeAndRegister = async (force = false) => {
     if (!file) {
       setError('Please select or drop a marksheet document file (PDF, PNG, JPG).');
       return;
@@ -954,8 +989,11 @@ const MarksheetAITab = () => {
       const data = await uploadMarksheet(file, {
         studentName,
         rollNumber,
+        prn: rollNumber,
         institution,
         passingYear,
+        ocrText: extractedOcrText,
+        forceRegister: force,
         uploaderName: studentName || 'Original Student / Registrar'
       });
 
@@ -998,7 +1036,8 @@ const MarksheetAITab = () => {
       const data = await decodeAndVerifyDocument({
         file,
         token: tokenInput.trim() || undefined,
-        verificationId: verificationIdInput.trim() || undefined
+        verificationId: verificationIdInput.trim() || undefined,
+        ocrText: extractedOcrText
       });
 
       if (data.tamperingDetected) {
@@ -1124,6 +1163,50 @@ const MarksheetAITab = () => {
           </>
         )}
       </div>
+
+      {/* OCR Scanning Progress or Detected Result Banner */}
+      {ocrScanning && (
+        <div style={{
+          background: 'rgba(56, 189, 248, 0.1)',
+          border: '1px solid rgba(56, 189, 248, 0.3)',
+          borderRadius: '8px',
+          padding: '10px 14px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          fontSize: '0.84rem',
+          color: '#38bdf8'
+        }}>
+          <div className="spinner" style={{ width: '16px', height: '16px', borderWidth: '2px', borderColor: '#38bdf8 transparent transparent' }} />
+          <span>🔍 AI Optical Character Recognition scanning marksheet text ({ocrProgress}%)...</span>
+        </div>
+      )}
+
+      {ocrDetectedInfo && ocrDetectedInfo.isMarksheetDetected && (
+        <div style={{
+          background: 'rgba(16, 185, 129, 0.12)',
+          border: '1px solid #10b981',
+          borderRadius: '8px',
+          padding: '10px 14px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '8px',
+          fontSize: '0.84rem',
+          color: '#a7f3d0'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <CheckCircle2 size={16} color="#10b981" />
+            <span>
+              <strong>Marksheet Detected:</strong> {ocrDetectedInfo.institution || 'Recognized Academic Institution'}
+              {ocrDetectedInfo.rollNumber ? ` • PRN: ${ocrDetectedInfo.rollNumber}` : ''}
+              {ocrDetectedInfo.studentName ? ` • Student: ${ocrDetectedInfo.studentName}` : ''}
+            </span>
+          </div>
+          <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>Auto-Populated</span>
+        </div>
+      )}
 
       {/* Mode 1: Candidate Details Form */}
       {mode === 'encode' && (
@@ -1308,6 +1391,16 @@ const MarksheetAITab = () => {
                   )}
                 </div>
               )}
+
+              <div style={{ marginTop: '14px', display: 'flex', gap: '10px' }}>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => handleEncodeAndRegister(true)}
+                  style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', borderColor: '#10b981' }}
+                >
+                  <ShieldCheck size={16} /> Confirm &amp; Register Anyway as Authentic Marksheet
+                </button>
+              </div>
             </div>
           )}
 

@@ -50,12 +50,14 @@ const uploadAndVerifyMarksheet = async (req, res, next) => {
     // 1. Analyze Document Structure: Is it an authentic marksheet or something else?
     const candidateDetails = {
       studentName: req.body.studentName || '',
-      rollNumber: req.body.rollNumber || '',
+      rollNumber: req.body.rollNumber || req.body.prn || '',
       institution: req.body.institution || '',
       boardOrUniversity: req.body.boardOrUniversity || '',
       passingYear: req.body.passingYear || '',
       courseOrDegree: req.body.courseOrDegree || '',
-      totalMarksOrGrade: req.body.totalMarksOrGrade || ''
+      totalMarksOrGrade: req.body.totalMarksOrGrade || '',
+      ocrText: req.body.ocrText || req.body.extractedText || '',
+      forceRegister: req.body.forceRegister || 'false'
     };
 
     const analysis = await marksheetAnalysisService.analyzeDocument(
@@ -255,7 +257,12 @@ const decodeAndVerifyDocument = async (req, res, next) => {
     // CASE A: User uploaded a file to decode and check originality
     if (fileBuffer) {
       // 1. Check whether it is a marksheet
-      const analysis = await marksheetAnalysisService.analyzeDocument(fileBuffer, fileMime, fileName);
+      const candidateDetails = {
+        studentName: req.body.studentName || '',
+        rollNumber: req.body.rollNumber || req.body.prn || '',
+        ocrText: req.body.ocrText || req.body.extractedText || ''
+      };
+      const analysis = await marksheetAnalysisService.analyzeDocument(fileBuffer, fileMime, fileName, candidateDetails);
       const computedHash = hashService.generateFileHash(fileBuffer);
 
       // 2. Query MongoDB for match

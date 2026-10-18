@@ -16,6 +16,7 @@ import {
   Smartphone
 } from 'lucide-react';
 import { uploadMarksheet, getDownloadUrl } from '../services/api';
+import { scanDocumentWithOCR } from '../services/ocrService';
 import DocumentPreviewModal from '../components/DocumentPreviewModal';
 
 const UploadPage = () => {
@@ -26,6 +27,11 @@ const UploadPage = () => {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [ocrScanning, setOcrScanning] = useState(false);
+  const [ocrProgress, setOcrProgress] = useState(0);
+  const [ocrInfo, setOcrInfo] = useState(null);
+  const [extractedOcrText, setExtractedOcrText] = useState('');
+  const [rejectionData, setRejectionData] = useState(null);
 
   const fileInputRef = useRef(null);
 
@@ -55,9 +61,12 @@ const UploadPage = () => {
     }
   };
 
-  const handleFileSelection = (file) => {
+  const handleFileSelection = async (file) => {
     setError(null);
     setResult(null);
+    setRejectionData(null);
+    setOcrInfo(null);
+    setExtractedOcrText('');
 
     const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     if (!validTypes.includes(file.type.toLowerCase())) {
@@ -71,18 +80,46 @@ const UploadPage = () => {
     }
 
     setSelectedFile(file);
+
+    // If image, run OCR to pre-scan keywords
+    if (file.type && file.type.startsWith('image/')) {
+      setOcrScanning(true);
+      setOcrProgress(15);
+      try {
+        const ocr = await scanDocumentWithOCR(file, (p) => setOcrProgress(p));
+        if (ocr && ocr.success && ocr.rawText) {
+          setExtractedOcrText(ocr.rawText);
+          setOcrInfo(ocr);
+        }
+      } catch (e) {
+        console.warn('OCR error:', e);
+      } finally {
+        setOcrScanning(false);
+      }
+    }
   };
 
-  const handleUploadAndVerify = async () => {
+  const handleUploadAndVerify = async (force = false) => {
     if (!selectedFile) return;
 
     setUploading(true);
     setUploadProgress(0);
     setError(null);
     setResult(null);
+    setRejectionData(null);
 
     try {
-      const data = await uploadMarksheet(selectedFile, (percent) => {
+      const metadata = {
+        studentName: ocrInfo?.studentName || '',
+        rollNumber: ocrInfo?.rollNumber || '',
+        prn: ocrInfo?.rollNumber || '',
+        institution: ocrInfo?.institution || '',
+        passingYear: ocrInfo?.passingYear || '',
+        ocrText: extractedOcrText,
+        forceRegister: force
+      };
+
+      const data = await uploadMarksheet(selectedFile, metadata, (percent) => {
         setUploadProgress(percent);
       });
 
@@ -95,6 +132,7 @@ const UploadPage = () => {
       console.error('Upload Error:', err);
       const errRes = err.response?.data;
       if (errRes && errRes.isMarksheet === false) {
+        setRejectionData(errRes);
         setError(`REJECTED: Document is NOT a recognized academic marksheet (${errRes.details || 'missing roll number, examination tables, or educational headers'}).`);
       } else {
         setError(
@@ -200,11 +238,70 @@ const UploadPage = () => {
                 </div>
               )}
 
+              {/* OCR Scanning Progress or Detected Result Banner */}
+              {ocrScanning && (
+                <div style={{
+                  background: 'rgba(56, 189, 248, 0.1)',
+                  border: '1px solid rgba(56, 189, 248, 0.3)',
+                  borderRadius: '8px',
+                  padding: '10px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  fontSize: '0.84rem',
+                  color: '#38bdf8',
+                  marginTop: '10px'
+                }}>
+                  <div className="spinner" style={{ width: '16px', height: '16px', borderWidth: '2px', borderColor: '#38bdf8 transparent transparent' }} />
+                  <span>🔍 AI Optical Character Recognition scanning marksheet text ({ocrProgress}%)...</span>
+                </div>
+              )}
+
+              {ocrInfo && ocrInfo.isMarksheetDetected && (
+                <div style={{
+                  background: 'rgba(16, 185, 129, 0.12)',
+                  border: '1px solid #10b981',
+                  borderRadius: '8px',
+                  padding: '10px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '8px',
+                  fontSize: '0.84rem',
+                  color: '#a7f3d0',
+                  marginTop: '10px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <CheckCircle2 size={16} color="#10b981" />
+                    <span>
+                      <strong>Marksheet Detected:</strong> {ocrInfo.institution || 'Recognized Academic Institution'}
+                      {ocrInfo.rollNumber ? ` • PRN: ${ocrInfo.rollNumber}` : ''}
+                      {ocrInfo.studentName ? ` • Student: ${ocrInfo.studentName}` : ''}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>Auto-Detected</span>
+                </div>
+              )}
+
               {/* Error Alert */}
               {error && (
                 <div className="error-alert">
                   <AlertTriangle size={18} />
                   <span>{error}</span>
+                </div>
+              )}
+
+              {/* Force Register Button if Rejection Occurs */}
+              {rejectionData && (
+                <div style={{ marginTop: '10px' }}>
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => handleUploadAndVerify(true)}
+                    style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', borderColor: '#10b981', width: '100%', justifyContent: 'center' }}
+                  >
+                    <ShieldCheck size={18} /> Confirm &amp; Register Anyway as Authentic Marksheet
+                  </button>
                 </div>
               )}
 
