@@ -8,7 +8,8 @@ import {
   ShieldAlert, 
   Settings,
   Sparkles,
-  Code2
+  Code2,
+  ShieldCheck
 } from 'lucide-react';
 
 const Sidebar = () => {
