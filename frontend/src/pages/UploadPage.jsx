@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   UploadCloud, 
   FileText, 
@@ -11,7 +12,8 @@ import {
   File,
   Lock,
   ArrowRight,
-  RotateCcw
+  RotateCcw,
+  Smartphone
 } from 'lucide-react';
 import { uploadMarksheet, getDownloadUrl } from '../services/api';
 import DocumentPreviewModal from '../components/DocumentPreviewModal';
@@ -91,10 +93,15 @@ const UploadPage = () => {
       }
     } catch (err) {
       console.error('Upload Error:', err);
-      setError(
-        err.response?.data?.error || 
-        'Error uploading file. Please ensure backend server is running on port 5000.'
-      );
+      const errRes = err.response?.data;
+      if (errRes && errRes.isMarksheet === false) {
+        setError(`REJECTED: Document is NOT a recognized academic marksheet (${errRes.details || 'missing roll number, examination tables, or educational headers'}).`);
+      } else {
+        setError(
+          errRes?.error || 
+          'Error uploading file. Please ensure backend server is running on port 5000.'
+        );
+      }
     } finally {
       setUploading(false);
     }
@@ -291,6 +298,12 @@ const UploadPage = () => {
 
                   {/* Actions */}
                   <div className="result-actions">
+                    <Link
+                      to={`/review/${result.marksheet.verificationId}`}
+                      className="btn btn-primary"
+                    >
+                      <Smartphone size={18} /> Cross-Device Review
+                    </Link>
                     <button
                       className="btn btn-secondary"
                       onClick={() => setShowPreviewModal(true)}
@@ -321,7 +334,7 @@ const UploadPage = () => {
                       <div className="banner-badge">✓ VERIFICATION SUCCESSFUL</div>
                       <h2 className="banner-title">New marksheet successfully verified.</h2>
                       <p className="banner-sub">
-                        A unique Verification ID has been generated, watermark applied, and cryptographic fingerprint indexed.
+                        A unique Verification ID has been generated, watermark applied, and cryptographic fingerprint indexed in MongoDB.
                       </p>
                     </div>
                   </div>
@@ -359,6 +372,12 @@ const UploadPage = () => {
 
                   {/* Actions */}
                   <div className="result-actions">
+                    <Link
+                      to={`/review/${result.marksheet.verificationId}`}
+                      className="btn btn-primary"
+                    >
+                      <Smartphone size={18} /> Cross-Device Review
+                    </Link>
                     <a
                       href={getDownloadUrl(result.marksheet.verificationId)}
                       target="_blank"

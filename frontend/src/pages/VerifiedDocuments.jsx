@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   FileCheck2, 
   Search, 
@@ -8,7 +9,8 @@ import {
   ShieldCheck, 
   RefreshCw,
   Copy,
-  Check
+  Check,
+  Smartphone
 } from 'lucide-react';
 import { getMarksheets, getDownloadUrl } from '../services/api';
 import DocumentPreviewModal from '../components/DocumentPreviewModal';
@@ -176,6 +178,13 @@ const VerifiedDocuments = () => {
                     </td>
                     <td>
                       <div className="table-actions-cell">
+                        <Link
+                          to={`/review/${doc.verificationId}`}
+                          className="btn btn-secondary btn-sm"
+                          title="Review on Any Device"
+                        >
+                          <Smartphone size={14} /> Review
+                        </Link>
                         <button
                           className="btn btn-secondary btn-sm"
                           onClick={() => setSelectedMarksheet(doc)}

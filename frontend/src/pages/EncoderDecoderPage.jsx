@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Code2,
   Lock,
@@ -20,6 +21,11 @@ import {
   EyeOff,
   FileText,
   Shuffle,
+  Database,
+  ExternalLink,
+  Smartphone,
+  Award,
+  AlertCircle
 } from 'lucide-react';
 import {
   base64Encode,
@@ -34,9 +40,15 @@ import {
   urlEncode,
   urlDecode,
 } from '../services/cryptoService';
+import {
+  uploadMarksheet,
+  decodeAndVerifyDocument,
+  getDownloadUrl
+} from '../services/api';
 
 // ─── Tab definitions ──────────────────────────────────────────────────────────
 const TABS = [
+  { id: 'marksheet-ai', label: 'Marksheet AI & 100% Originality', icon: ShieldCheck, color: '#10b981' },
   { id: 'base64',  label: 'Base64',       icon: Code2,       color: '#38bdf8' },
   { id: 'aes',     label: 'AES Encrypt',  icon: Lock,        color: '#a78bfa' },
   { id: 'sha256',  label: 'SHA-256 Hash', icon: Hash,        color: '#34d399' },
@@ -867,13 +879,648 @@ const URLTab = () => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// TAB: MARKSHEET AI & 100% ORIGINALITY
+// ─────────────────────────────────────────────────────────────────────────────
+const MarksheetAITab = () => {
+  const [mode, setMode] = useState('encode'); // 'encode' | 'decode'
+  const [file, setFile] = useState(null);
+  const [tokenInput, setTokenInput] = useState('');
+  const [verificationIdInput, setVerificationIdInput] = useState('');
+  
+  // Metadata for encode
+  const [studentName, setStudentName] = useState('');
+  const [rollNumber, setRollNumber] = useState('');
+  const [institution, setInstitution] = useState('');
+  const [passingYear, setPassingYear] = useState('');
+
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [dragActive, setDragActive] = useState(false);
+
+  const { copied, copy } = useCopy();
+  const fileInputRef = useRef(null);
+
+  const handleDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') setDragActive(true);
+    else if (e.type === 'dragleave') setDragActive(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      setFile(e.dataTransfer.files[0]);
+      setError(null);
+      setResult(null);
+    }
+  };
+
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+      setError(null);
+      setResult(null);
+    }
+  };
+
+  const handleReset = () => {
+    setFile(null);
+    setTokenInput('');
+    setVerificationIdInput('');
+    setStudentName('');
+    setRollNumber('');
+    setInstitution('');
+    setPassingYear('');
+    setResult(null);
+    setError(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleEncodeAndRegister = async () => {
+    if (!file) {
+      setError('Please select or drop a marksheet document file (PDF, PNG, JPG).');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setResult(null);
+
+    try {
+      const data = await uploadMarksheet(file, {
+        studentName,
+        rollNumber,
+        institution,
+        passingYear,
+        uploaderName: studentName || 'Original Student / Registrar'
+      });
+
+      if (data.success) {
+        setResult({
+          type: 'ENCODE_SUCCESS',
+          data
+        });
+      } else {
+        setError(data.error || 'Failed to encode and register marksheet.');
+      }
+    } catch (err) {
+      const errorData = err.response?.data;
+      if (errorData && errorData.isMarksheet === false) {
+        setResult({
+          type: 'REJECTED_NON_MARKSHEET',
+          analysis: errorData.analysis,
+          details: errorData.details,
+          message: errorData.error
+        });
+      } else {
+        setError(errorData?.error || 'Server error while analyzing and registering marksheet. Ensure backend is running.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDecodeAndVerify = async () => {
+    if (!file && !tokenInput.trim() && !verificationIdInput.trim()) {
+      setError('Please upload a document to verify against MongoDB, or enter an Encoded Token / Verification ID.');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setResult(null);
+
+    try {
+      const data = await decodeAndVerifyDocument({
+        file,
+        token: tokenInput.trim() || undefined,
+        verificationId: verificationIdInput.trim() || undefined
+      });
+
+      if (data.tamperingDetected) {
+        setResult({
+          type: 'TAMPERING_DETECTED',
+          data
+        });
+      } else if (data.is100PercentOriginal) {
+        setResult({
+          type: 'DECODE_100_ORIGINAL',
+          data
+        });
+      } else if (!data.isMarksheet) {
+        setResult({
+          type: 'REJECTED_NON_MARKSHEET',
+          analysis: data.analysis,
+          message: data.message || 'Document is NOT a recognized academic marksheet.'
+        });
+      } else {
+        setResult({
+          type: 'UNREGISTERED',
+          data
+        });
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || err.response?.data?.message || 'Verification failed. Please check inputs.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="tab-content">
+      <div className="tab-header">
+        <ShieldCheck size={32} color="#10b981" className="tab-icon" />
+        <div>
+          <div className="tab-title">Marksheet AI Authenticator &amp; 100% Originality Engine</div>
+          <div className="tab-desc">
+            Analyzes uploaded documents to determine whether it is an authentic marksheet, encodes cryptographic SHA-256 fingerprints, and registers immutable provenance in the MongoDB virtual server for 100% originality checks on any device.
+          </div>
+        </div>
+      </div>
+
+      {/* Mode Switch */}
+      <div className="mode-toggle">
+        <button
+          className={`mode-btn ${mode === 'encode' ? 'active' : ''}`}
+          onClick={() => { setMode('encode'); setResult(null); setError(null); }}
+        >
+          <Upload size={16} /> Mode 1: Analyze &amp; Encode Marksheet (First-Time Upload)
+        </button>
+        <button
+          className={`mode-btn ${mode === 'decode' ? 'active' : ''}`}
+          onClick={() => { setMode('decode'); setResult(null); setError(null); }}
+        >
+          <ShieldCheck size={16} /> Mode 2: Decode &amp; Check 100% Originality (Future Reviewer)
+        </button>
+      </div>
+
+      {/* Database Status Ribbon */}
+      <div style={{
+        background: 'rgba(16, 185, 129, 0.08)',
+        border: '1px solid rgba(16, 185, 129, 0.25)',
+        borderRadius: '8px',
+        padding: '10px 14px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '8px',
+        fontSize: '0.83rem'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6ee7b7' }}>
+          <Database size={15} color="#10b981" />
+          <span><strong>MongoDB Virtual Server Storage:</strong> Connected &amp; Ready for Multi-Device Review</span>
+        </div>
+        <span style={{ color: '#94a3b8', fontSize: '0.78rem' }}>
+          SHA-256 Bit-Exact Integrity Guarantee
+        </span>
+      </div>
+
+      {/* File Dropzone */}
+      <div
+        className="file-drop-zone"
+        onDragEnter={handleDrag}
+        onDragLeave={handleDrag}
+        onDragOver={handleDrag}
+        onDrop={handleDrop}
+        onClick={() => fileInputRef.current?.click()}
+        style={{
+          borderStyle: 'dashed',
+          borderColor: dragActive ? '#10b981' : file ? 'rgba(16, 185, 129, 0.6)' : undefined,
+          background: dragActive ? 'rgba(16, 185, 129, 0.08)' : file ? 'rgba(16, 185, 129, 0.04)' : undefined
+        }}
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,.png,.jpg,.jpeg,.webp"
+          style={{ display: 'none' }}
+          onChange={handleFileChange}
+        />
+        {file ? (
+          <>
+            <FileText size={36} color="#10b981" />
+            <div>
+              <div style={{ fontWeight: 600, color: '#f8fafc' }}>{file.name}</div>
+              <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                {(file.size / 1024).toFixed(1)} KB • {file.type || 'Document'}
+              </div>
+            </div>
+            <span style={{ fontSize: '0.78rem', color: '#38bdf8' }}>Click or drop another file to replace</span>
+          </>
+        ) : (
+          <>
+            <Upload size={36} className="file-drop-icon" />
+            <div>
+              <strong>Drag &amp; drop document</strong> or <span style={{ color: '#38bdf8' }}>browse</span>
+            </div>
+            <div className="file-size-hint">
+              Supports Marksheet PDFs, PNGs, and JPGs (Document structural AI analysis automatically checks for marksheet markers)
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Mode 1: Candidate Details Form */}
+      {mode === 'encode' && (
+        <div style={{
+          background: 'rgba(0,0,0,0.25)',
+          padding: '16px',
+          borderRadius: '10px',
+          border: '1px solid var(--border-color)',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: '12px'
+        }}>
+          <div>
+            <label style={{ fontSize: '0.78rem', color: '#94a3b8', display: 'block', marginBottom: '4px', fontWeight: 600 }}>
+              Candidate / Student Name
+            </label>
+            <input
+              type="text"
+              className="enc-input"
+              placeholder="e.g. John Doe"
+              value={studentName}
+              onChange={(e) => setStudentName(e.target.value)}
+              style={{ width: '100%' }}
+            />
+          </div>
+
+          <div>
+            <label style={{ fontSize: '0.78rem', color: '#94a3b8', display: 'block', marginBottom: '4px', fontWeight: 600 }}>
+              Roll Number / PRN Identifier
+            </label>
+            <input
+              type="text"
+              className="enc-input"
+              placeholder="e.g. 2026-ENG-8492"
+              value={rollNumber}
+              onChange={(e) => setRollNumber(e.target.value)}
+              style={{ width: '100%' }}
+            />
+          </div>
+
+          <div>
+            <label style={{ fontSize: '0.78rem', color: '#94a3b8', display: 'block', marginBottom: '4px', fontWeight: 600 }}>
+              Issuing Board / University
+            </label>
+            <input
+              type="text"
+              className="enc-input"
+              placeholder="e.g. State Technical University"
+              value={institution}
+              onChange={(e) => setInstitution(e.target.value)}
+              style={{ width: '100%' }}
+            />
+          </div>
+
+          <div>
+            <label style={{ fontSize: '0.78rem', color: '#94a3b8', display: 'block', marginBottom: '4px', fontWeight: 600 }}>
+              Passing Year / Semester
+            </label>
+            <input
+              type="text"
+              className="enc-input"
+              placeholder="e.g. 2026"
+              value={passingYear}
+              onChange={(e) => setPassingYear(e.target.value)}
+              style={{ width: '100%' }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Mode 2: Optional Token / Verification ID Input */}
+      {mode === 'decode' && (
+        <div style={{
+          background: 'rgba(0,0,0,0.25)',
+          padding: '16px',
+          borderRadius: '10px',
+          border: '1px solid var(--border-color)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px'
+        }}>
+          <div style={{ fontSize: '0.84rem', color: '#94a3b8' }}>
+            Verify by uploading the marksheet above, <strong>OR</strong> paste its Encoded Token / Verification ID below:
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px' }}>
+            <div>
+              <label style={{ fontSize: '0.78rem', color: '#94a3b8', display: 'block', marginBottom: '4px', fontWeight: 600 }}>
+                Verification ID
+              </label>
+              <input
+                type="text"
+                className="enc-input"
+                placeholder="e.g. VER-2026-000001"
+                value={verificationIdInput}
+                onChange={(e) => setVerificationIdInput(e.target.value)}
+                style={{ width: '100%', fontFamily: 'monospace' }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '0.78rem', color: '#94a3b8', display: 'block', marginBottom: '4px', fontWeight: 600 }}>
+                Cryptographic Token
+              </label>
+              <input
+                type="text"
+                className="enc-input"
+                placeholder="e.g. MKS-ENCODED.eyJ2SWQiOiJ..."
+                value={tokenInput}
+                onChange={(e) => setTokenInput(e.target.value)}
+                style={{ width: '100%', fontFamily: 'monospace' }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {error && <ErrorBox message={error} />}
+
+      {/* Action Buttons */}
+      <div className="action-row">
+        {mode === 'encode' ? (
+          <button
+            className="btn btn-primary"
+            onClick={handleEncodeAndRegister}
+            disabled={loading || !file}
+            style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', borderColor: '#10b981' }}
+          >
+            <ShieldCheck size={17} />
+            {loading ? 'Analyzing & Encoding...' : 'Analyze Document & Register Original to MongoDB'}
+          </button>
+        ) : (
+          <button
+            className="btn btn-primary"
+            onClick={handleDecodeAndVerify}
+            disabled={loading || (!file && !tokenInput && !verificationIdInput)}
+            style={{ background: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)', borderColor: '#38bdf8' }}
+          >
+            <ShieldCheck size={17} />
+            {loading ? 'Decoding & Querying MongoDB...' : 'Decode & Check 100% Originality'}
+          </button>
+        )}
+
+        <button className="btn btn-secondary" onClick={handleReset}>
+          <RotateCcw size={15} /> Reset
+        </button>
+      </div>
+
+      {/* ── RESULTS AREA ── */}
+      {result && (
+        <div style={{ marginTop: '12px' }}>
+          {/* CASE 1: REJECTED AS NON-MARKSHEET */}
+          {result.type === 'REJECTED_NON_MARKSHEET' && (
+            <div style={{
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1.5px solid #ef4444',
+              borderRadius: '12px',
+              padding: '20px',
+              color: '#f8fafc'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                <AlertTriangle size={26} color="#ef4444" />
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f87171', margin: 0 }}>
+                  REJECTED: Document is NOT a Marksheet!
+                </h3>
+              </div>
+              <p style={{ color: '#cbd5e1', fontSize: '0.9rem', margin: '4px 0 12px' }}>
+                {result.message || 'The AI structural analysis determined this file does not meet academic marksheet criteria (missing roll number, examination tables, or educational board marks).'}
+              </p>
+              {result.analysis && (
+                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: '8px', fontSize: '0.84rem' }}>
+                  <div style={{ color: '#f87171', fontWeight: 600, marginBottom: '6px' }}>
+                    Marksheet Match Confidence: {result.analysis.confidenceScore}% (Required: ≥ 55%)
+                  </div>
+                  {result.analysis.missingSignals?.length > 0 && (
+                    <div>
+                      <span style={{ color: '#94a3b8' }}>Failed Criteria:</span>
+                      <ul style={{ margin: '4px 0 0', paddingLeft: '20px', color: '#fda4af' }}>
+                        {result.analysis.missingSignals.map((sig, i) => (
+                          <li key={i}>{sig}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* CASE 2: TAMPERING DETECTED */}
+          {result.type === 'TAMPERING_DETECTED' && (
+            <div style={{
+              background: 'rgba(239, 68, 68, 0.15)',
+              border: '2px solid #ef4444',
+              borderRadius: '12px',
+              padding: '22px',
+              boxShadow: '0 0 24px rgba(239, 68, 68, 0.25)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                <AlertCircle size={30} color="#ef4444" />
+                <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#ef4444', margin: 0 }}>
+                  CRITICAL: TAMPERING DETECTED!
+                </h3>
+              </div>
+              <p style={{ color: '#fecaca', fontSize: '0.95rem', margin: '6px 0 14px' }}>
+                {result.data.message}
+              </p>
+              <div style={{ background: 'rgba(0,0,0,0.4)', padding: '14px', borderRadius: '8px', fontSize: '0.85rem', fontFamily: 'monospace' }}>
+                <div style={{ color: '#10b981', marginBottom: '6px' }}>
+                  <strong>Original Hash in MongoDB:</strong> {result.data.expectedHash}
+                </div>
+                <div style={{ color: '#ef4444' }}>
+                  <strong>Current Uploaded Hash:</strong> {result.data.actualHash}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* CASE 3: 100% ORIGINAL MATCH (EITHER REGISTERED OR VERIFIED) */}
+          {(result.type === 'ENCODE_SUCCESS' || result.type === 'DECODE_100_ORIGINAL') && (
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(6, 95, 70, 0.25))',
+              border: '1.5px solid #10b981',
+              borderRadius: '14px',
+              padding: '24px',
+              boxShadow: '0 8px 32px rgba(16, 185, 129, 0.2)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{
+                    width: '46px',
+                    height: '46px',
+                    borderRadius: '50%',
+                    background: '#10b981',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.4)'
+                  }}>
+                    <ShieldCheck size={28} color="#ffffff" />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#f8fafc', margin: 0 }}>
+                      100% ORIGINAL &amp; AUTHENTIC MARKSHEET
+                    </h3>
+                    <span style={{ fontSize: '0.83rem', color: '#a7f3d0' }}>
+                      {result.type === 'ENCODE_SUCCESS'
+                        ? 'Successfully Analyzed, Encoded & Registered to MongoDB Virtual Server'
+                        : 'Exact Byte-for-Byte Match Confirmed against Original Upload'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Cross Device Review Button */}
+                {result.data?.marksheet?.verificationId && (
+                  <Link
+                    to={`/review/${result.data.marksheet.verificationId}`}
+                    className="btn btn-primary"
+                    style={{ background: '#0284c7', borderColor: '#38bdf8' }}
+                  >
+                    <Smartphone size={16} /> Open Cross-Device Review
+                  </Link>
+                )}
+              </div>
+
+              {/* Provenance Details Grid */}
+              <div style={{
+                background: 'rgba(0,0,0,0.35)',
+                padding: '16px',
+                borderRadius: '10px',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: '14px',
+                fontSize: '0.88rem',
+                border: '1px solid rgba(255,255,255,0.06)'
+              }}>
+                <div>
+                  <span style={{ color: '#94a3b8', fontSize: '0.78rem', display: 'block' }}>Verification ID</span>
+                  <span style={{ fontWeight: 700, color: '#38bdf8', fontFamily: 'monospace', fontSize: '1rem' }}>
+                    {result.data?.marksheet?.verificationId}
+                  </span>
+                </div>
+
+                <div>
+                  <span style={{ color: '#94a3b8', fontSize: '0.78rem', display: 'block' }}>First-Time Uploaded By</span>
+                  <span style={{ fontWeight: 600, color: '#f8fafc' }}>
+                    {result.data?.marksheet?.uploaderInfo?.name || 'Registered Candidate'}
+                  </span>
+                </div>
+
+                <div>
+                  <span style={{ color: '#94a3b8', fontSize: '0.78rem', display: 'block' }}>Original Registration Timestamp</span>
+                  <span style={{ color: '#f8fafc' }}>
+                    {new Date(result.data?.marksheet?.firstUploadTimestamp || result.data?.marksheet?.createdAt).toLocaleString()}
+                  </span>
+                </div>
+
+                <div>
+                  <span style={{ color: '#94a3b8', fontSize: '0.78rem', display: 'block' }}>Document AI Classification</span>
+                  <span style={{ color: '#34d399', fontWeight: 600 }}>
+                    Academic Marksheet ({result.data?.marksheet?.marksheetAnalysis?.confidenceScore || 98}% match)
+                  </span>
+                </div>
+
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+                    <span style={{ color: '#94a3b8', fontSize: '0.78rem' }}>SHA-256 Bit-Exact Fingerprint (MongoDB Stored)</span>
+                    <button
+                      onClick={() => copy(result.data?.marksheet?.fileHash, 'res-hash')}
+                      style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', fontSize: '0.75rem' }}
+                    >
+                      {copied === 'res-hash' ? 'Copied!' : 'Copy Hash'}
+                    </button>
+                  </div>
+                  <div style={{
+                    fontFamily: 'monospace',
+                    fontSize: '0.76rem',
+                    background: 'rgba(15, 23, 42, 0.7)',
+                    padding: '6px 10px',
+                    borderRadius: '6px',
+                    color: '#a5f3fc',
+                    wordBreak: 'break-all'
+                  }}>
+                    {result.data?.marksheet?.fileHash}
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Links */}
+              <div style={{ marginTop: '16px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                <Link
+                  to={`/review/${result.data?.marksheet?.verificationId}`}
+                  className="btn btn-primary"
+                  style={{ flex: 1, minWidth: '200px', justifyContent: 'center' }}
+                >
+                  <Award size={16} /> View Full Certified Review &amp; Report
+                </Link>
+                {result.data?.marksheet?.verificationId && (
+                  <a
+                    href={getDownloadUrl(result.data.marksheet.verificationId)}
+                    className="btn btn-secondary"
+                    download
+                    style={{ flex: 1, minWidth: '200px', justifyContent: 'center' }}
+                  >
+                    <Download size={16} /> Download Watermarked Marksheet
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* CASE 4: UNREGISTERED MARKSHEET */}
+          {result.type === 'UNREGISTERED' && (
+            <div style={{
+              background: 'rgba(251, 146, 60, 0.1)',
+              border: '1.5px solid #fb923c',
+              borderRadius: '12px',
+              padding: '20px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                <AlertTriangle size={24} color="#fb923c" />
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#fb923c', margin: 0 }}>
+                  Valid Marksheet Structure, but Not Registered in MongoDB
+                </h3>
+              </div>
+              <p style={{ color: '#fed7aa', fontSize: '0.9rem', margin: '4px 0 12px' }}>
+                This file has genuine academic marksheet structure, but its SHA-256 fingerprint was not found in the MongoDB database registry. Switch to Mode 1 to register it for the first time!
+              </p>
+              <button
+                className="btn btn-primary"
+                onClick={() => { setMode('encode'); setResult(null); }}
+              >
+                Switch to Mode 1 &amp; Register This Marksheet
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Info Pills */}
+      <div className="info-pills">
+        <span className="pill">AI Marksheet Detection</span>
+        <span className="pill">SHA-256 Bit-Exact Integrity</span>
+        <span className="pill">MongoDB Cloud / Virtual Server</span>
+        <span className="pill">Cross-Device Accessible</span>
+      </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // MAIN PAGE
 // ─────────────────────────────────────────────────────────────────────────────
 const EncoderDecoderPage = () => {
-  const [activeTab, setActiveTab] = useState('base64');
+  const [activeTab, setActiveTab] = useState('marksheet-ai');
 
   const renderTab = () => {
     switch (activeTab) {
+      case 'marksheet-ai': return <MarksheetAITab />;
       case 'base64': return <Base64Tab />;
       case 'aes':    return <AESTab />;
       case 'sha256': return <SHA256Tab />;

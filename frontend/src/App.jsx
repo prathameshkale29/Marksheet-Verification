@@ -9,6 +9,7 @@ import VerificationHistory from './pages/VerificationHistory';
 import AdminDashboard from './pages/AdminDashboard';
 import SettingsPage from './pages/SettingsPage';
 import EncoderDecoderPage from './pages/EncoderDecoderPage';
+import MarksheetReviewPage from './pages/MarksheetReviewPage';
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/encode" element={<EncoderDecoderPage />} />
+            <Route path="/review/:verificationId" element={<MarksheetReviewPage />} />
           </Routes>
         </div>
       </div>

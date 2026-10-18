@@ -10,13 +10,29 @@ const api = axios.create({
 });
 
 /**
- * Upload and verify marksheet file
+ * Upload and encode marksheet file with optional candidate details
  * @param {File} file 
+ * @param {Object} metadata - { studentName, rollNumber, institution, uploaderName, forceRegister }
  * @param {Function} onProgress 
  */
-export const uploadMarksheet = async (file, onProgress) => {
+export const uploadMarksheet = async (file, metadata = {}, onProgress) => {
   const formData = new FormData();
   formData.append('file', file);
+
+  if (typeof metadata === 'function') {
+    onProgress = metadata;
+    metadata = {};
+  }
+
+  // Append candidate and uploader fields if provided
+  if (metadata.studentName) formData.append('studentName', metadata.studentName);
+  if (metadata.rollNumber) formData.append('rollNumber', metadata.rollNumber);
+  if (metadata.institution) formData.append('institution', metadata.institution);
+  if (metadata.boardOrUniversity) formData.append('boardOrUniversity', metadata.boardOrUniversity);
+  if (metadata.passingYear) formData.append('passingYear', metadata.passingYear);
+  if (metadata.uploaderName) formData.append('uploaderName', metadata.uploaderName);
+  if (metadata.uploaderEmail) formData.append('uploaderEmail', metadata.uploaderEmail);
+  if (metadata.forceRegister) formData.append('forceRegister', 'true');
 
   const response = await api.post('/upload', formData, {
     headers: {
@@ -30,6 +46,40 @@ export const uploadMarksheet = async (file, onProgress) => {
     }
   });
 
+  return response.data;
+};
+
+/**
+ * Decode & Verify document or token
+ * Answers:
+ * 1. Is it an authentic marksheet?
+ * 2. Is it 100% original as first uploaded by the user, or tampered?
+ * @param {Object} param0 - { file, token, verificationId, hash }
+ */
+export const decodeAndVerifyDocument = async ({ file, token, verificationId, hash }) => {
+  if (file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (token) formData.append('token', token);
+    if (verificationId) formData.append('verificationId', verificationId);
+    if (hash) formData.append('hash', hash);
+
+    const response = await api.post('/decode-verify', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data;
+  } else {
+    const response = await api.post('/decode-verify', { token, verificationId, hash });
+    return response.data;
+  }
+};
+
+/**
+ * Review marksheet details on any mobile / desktop device
+ * @param {string} verificationId 
+ */
+export const getMarksheetForReview = async (verificationId) => {
+  const response = await api.get(`/review/${verificationId}`);
   return response.data;
 };
 
