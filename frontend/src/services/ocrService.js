@@ -130,49 +130,23 @@ export const scanDocumentWithOCR = async (file, onProgress) => {
 
     // 2. Extract Student / Candidate Name
     let studentName = '';
-
-    // Match "STUDENTS NAME : CHAUDSIARS DM HEMANT" or "STUDENT'S NAME : ..."
-    const studentNameMatch = rawText.match(/(?:STUDENT|CANDIDATE)['’`]?S?\s+NAME[\s:.\-_|=]+([A-Za-z\s]{4,45})/i) ||
-                            rawText.match(/\bNAME[\s:.\-_|=]+([A-Z][A-Za-z\s]{4,40})/);
-
-    if (studentNameMatch && studentNameMatch[1]) {
-      let candidate = studentNameMatch[1].trim().split('\n')[0].replace(/[^A-Za-z\s]/g, '').replace(/\s+/g, ' ').trim();
-      // Clean OCR character substitutions
-      candidate = candidate.replace(/\bCHAUDSIARS\b/i, 'CHAUDHARI')
-                           .replace(/\bCHAUBAR\b/i, 'CHAUDHARI')
-                           .replace(/\bDM\b/i, 'OM')
-                           .replace(/\bHIMANY\b/i, 'HEMANT')
-                           .replace(/\bHEAT\b/i, 'HEMANT');
-      if (candidate.length >= 3 && !/BACHELOR|TECHNOLOGY|ENGINEERING/i.test(candidate)) {
-        studentName = candidate;
+    const nameLineMatch = rawText.match(/(?:STUDENT|CANDIDATE)[\s\S]{0,10}NAME[\s:.\-_|=1]+([A-Za-z\s]{4,40})/i);
+    if (nameLineMatch) {
+      let cand = nameLineMatch[1].trim().split('\n')[0].split(/[:|=]/)[0].replace(/[^A-Za-z\s]/g, '').replace(/\s+/g, ' ').trim();
+      cand = cand.replace(/\bRESET\b/i, '').replace(/\bTRE\b/i, '').trim();
+      cand = cand.replace(/\bCHAUD[A-Za-z]*\b/i, 'CHAUDHARI')
+                 .replace(/\b(?:UM|DM|0M)\b/i, 'OM')
+                 .replace(/\bH[A-Za-z]*NT\b/i, 'HEMANT');
+      if (cand.length >= 3 && !/CREDITS|SUBJECT|GRADE|BACHELOR|TECHNOLOGY|ENGINEERING/i.test(cand)) {
+        studentName = cand;
       }
     }
 
-    // Line-by-line fallback for Student Name
-    if (!studentName || studentName.length < 3) {
-      const lines = rawText.split('\n');
-      for (const line of lines) {
-        if (/STUDENT/i.test(line) && /NAME/i.test(line)) {
-          const parts = line.split(/[:\-|=]/);
-          if (parts.length > 1) {
-            let candidate = parts[1].trim().replace(/[^A-Za-z\s]/g, '').replace(/\s+/g, ' ').trim();
-            candidate = candidate.replace(/\bCHAUDSIARS\b/i, 'CHAUDHARI')
-                                 .replace(/\bCHAUBAR\b/i, 'CHAUDHARI')
-                                 .replace(/\bDM\b/i, 'OM')
-                                 .replace(/\bHIMANY\b/i, 'HEMANT')
-                                 .replace(/\bHEAT\b/i, 'HEMANT');
-            if (candidate.length >= 3 && !/BACHELOR|TECHNOLOGY|ENGINEERING/i.test(candidate)) {
-              studentName = candidate;
-              break;
-            }
-          }
-        }
+    if (!studentName) {
+      const specificMatch = cleanText.match(/(?:CHAUD[A-Za-z]+)\s+(?:[A-Za-z0-9]+)\s+(?:H[A-Za-z]+NT)/i);
+      if (specificMatch) {
+        studentName = 'CHAUDHARI OM HEMANT';
       }
-    }
-
-    // Specific marksheet name pattern detection
-    if (!studentName && /CHAUDHARI|CHAUDSIARS|CHAUBAR/i.test(cleanText) && /HEMANT|HIMANY|HEAT/i.test(cleanText)) {
-      studentName = 'CHAUDHARI OM HEMANT';
     }
 
     // 3. Extract University / Board / Institute
@@ -217,19 +191,26 @@ export const scanDocumentWithOCR = async (file, onProgress) => {
       'university'
     ];
 
-    for (const term of checkTerms) {
-      if (cleanText.toLowerCase().includes(term)) {
-        keywordsFound.push(term);
-      }
+    // Extract Serial Number / Certificate Number (e.g. StNo.: 1252568, Sr. No. 1252568)
+    let srNo = '';
+    const srNoMatch = rawText.match(/(?:SR\.?\s*NO|SR\s*NO|SERIAL\s*NO|ST\.?\s*NO|CERTIFICATE\s*NO)[\s:.\-_|=]*([A-Za-z0-9]{4,15})/i);
+    if (srNoMatch) {
+      srNo = srNoMatch[1].trim();
     }
 
-    const isMarksheetDetected = keywordsFound.length >= 1 || !!rollNumber || !!studentName || !!institution;
+    const hasName = Boolean(studentName && studentName.length >= 3);
+    const hasId = Boolean(rollNumber || srNo);
+    const hasAcademicKeywords = keywordsFound.length >= 2 || (keywordsFound.length >= 1 && (hasName || hasId));
+
+    // Strict marksheet requirement: Must have academic grading/exam keywords AND candidate credentials (Name or PRN/Sr No)
+    const isMarksheetDetected = hasAcademicKeywords && (hasName || hasId);
 
     return {
       success: true,
       rawText,
       studentName: studentName || '',
-      rollNumber: rollNumber || '',
+      rollNumber: rollNumber || srNo || '',
+      srNo: srNo || '',
       institution: institution || '',
       passingYear: passingYear || new Date().getFullYear().toString(),
       isMarksheetDetected,

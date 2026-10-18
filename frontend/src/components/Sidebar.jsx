@@ -18,7 +18,7 @@ const Sidebar = () => {
     { path: '/documents', label: 'Verified Documents', icon: FileCheck2 },
     { path: '/history', label: 'Verification History', icon: History },
     { path: '/admin', label: 'Admin Dashboard', icon: ShieldAlert },
-    { path: '/encode', label: 'AI Encoding Lab', icon: Code2, badge: '100% AUTH' },
+    { path: '/encode', label: 'Marksheet Authenticator', icon: ShieldCheck, badge: 'OFFICIAL' },
     { path: '/settings', label: 'Settings', icon: Settings },
   ];
 

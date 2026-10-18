@@ -154,7 +154,7 @@ const MarksheetReviewPage = () => {
         </div>
       </div>
 
-      {/* 100% Originality Guarantee Hero Banner */}
+      {/* Authenticity Guarantee Hero Banner */}
       <div style={{
         background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 95, 70, 0.3))',
         border: '1.5px solid #10b981',
@@ -184,7 +184,7 @@ const MarksheetReviewPage = () => {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#f8fafc', margin: 0 }}>
-                100% ORIGINAL & AUTHENTIC
+                VERIFIED AUTHENTIC MARKSHEET
               </h2>
               <span style={{
                 background: '#10b981',
@@ -195,12 +195,12 @@ const MarksheetReviewPage = () => {
                 borderRadius: '999px',
                 textTransform: 'uppercase'
               }}>
-                Guaranteed
+                Verified
               </span>
             </div>
             <p style={{ color: '#d1fae5', margin: '6px 0 0', fontSize: '0.95rem' }}>
-              This marksheet matches <strong>100% byte-for-byte</strong> with the original document uploaded first time by{' '}
-              <strong>{marksheet.uploaderInfo?.name || 'the registered user'}</strong>. Zero tampering detected.
+              This marksheet matches <strong>byte-for-byte</strong> with the original document registered by{' '}
+              <strong>{marksheet.uploaderInfo?.name || 'the registered candidate'}</strong>. Zero tampering detected.
             </p>
           </div>
         </div>

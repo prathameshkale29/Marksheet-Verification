@@ -125,8 +125,8 @@ const uploadAndVerifyMarksheet = async (req, res, next) => {
         success: true,
         isDuplicate: true,
         isOriginalMatch: true,
-        authenticityStatus: '100% ORIGINAL & AUTHENTIC',
-        message: `Verified! This exact marksheet was originally uploaded first time on ${new Date(existingMarksheet.firstUploadTimestamp || existingMarksheet.createdAt).toLocaleString()}.`,
+        authenticityStatus: 'VERIFIED AUTHENTIC MARKSHEET',
+        message: `Verified! This exact marksheet was originally registered on ${new Date(existingMarksheet.firstUploadTimestamp || existingMarksheet.createdAt).toLocaleString()}.`,
         marksheet: existingMarksheet,
         attempt: attemptRecord,
         provenance: {
@@ -214,7 +214,7 @@ const uploadAndVerifyMarksheet = async (req, res, next) => {
         pageCount: watermarkResult.pageCount || 1,
         dimensions: watermarkResult.dimensions || 'N/A',
         mimeType: mimetype,
-        watermarkText: 'OFFICIAL 100% ORIGINAL MARKSHEET'
+        watermarkText: 'OFFICIAL VERIFIED MARKSHEET'
       }
     });
 
@@ -236,8 +236,8 @@ const uploadAndVerifyMarksheet = async (req, res, next) => {
       success: true,
       isDuplicate: false,
       isOriginalMatch: true,
-      authenticityStatus: '100% ORIGINAL & AUTHENTIC (FIRST TIME REGISTERED)',
-      message: 'New marksheet successfully analyzed, encoded, and registered to MongoDB virtual server.',
+      authenticityStatus: 'VERIFIED AUTHENTIC (FIRST TIME REGISTERED)',
+      message: 'New marksheet successfully analyzed, encoded, and registered in database registry.',
       marksheet: newMarksheet,
       attempt: attemptRecord,
       encodedToken,
@@ -289,8 +289,8 @@ const decodeAndVerifyDocument = async (req, res, next) => {
           success: true,
           isMarksheet: true,
           is100PercentOriginal: true,
-          verificationResult: '100% ORIGINAL & AUTHENTIC',
-          message: 'Document cryptographic fingerprint matches the original marksheet byte-for-byte (100% integrity).',
+          verificationResult: 'VERIFIED AUTHENTIC MARKSHEET',
+          message: 'Document cryptographic fingerprint matches the original marksheet byte-for-byte.',
           marksheet: matchedMarksheet,
           originalProvenance: {
             uploadedFirstTimeBy: matchedMarksheet.uploaderInfo?.name || 'Registered User',
@@ -385,7 +385,7 @@ const decodeAndVerifyDocument = async (req, res, next) => {
       success: true,
       isMarksheet: true,
       is100PercentOriginal: true,
-      verificationResult: '100% ORIGINAL & AUTHENTIC',
+      verificationResult: 'VERIFIED AUTHENTIC MARKSHEET',
       message: 'Token and record cryptographic validation successful.',
       marksheet,
       tokenData,

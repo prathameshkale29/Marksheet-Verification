@@ -42,7 +42,7 @@ const Navbar = () => {
 
           <div className="security-tag">
             <Lock size={14} />
-            <span>100% Tamper-Proof</span>
+            <span>Tamper-Proof Verification</span>
           </div>
         </div>
       </div>

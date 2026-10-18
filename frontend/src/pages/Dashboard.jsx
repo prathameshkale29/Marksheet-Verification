@@ -86,7 +86,7 @@ const Dashboard = () => {
           value={stats.verifiedCount}
           icon={ShieldCheck}
           color="emerald"
-          badgeText="100% SECURE"
+          badgeText="VERIFIED"
           description="Active verified records"
         />
         <StatsCard
