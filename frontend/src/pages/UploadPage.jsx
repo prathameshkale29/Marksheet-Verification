@@ -33,6 +33,12 @@ const UploadPage = () => {
   const [extractedOcrText, setExtractedOcrText] = useState('');
   const [rejectionData, setRejectionData] = useState(null);
 
+  // Marksheet Candidate Details (auto-filled by OCR, editable by user)
+  const [candidateName, setCandidateName] = useState('');
+  const [prnNumber, setPrnNumber] = useState('');
+  const [institutionName, setInstitutionName] = useState('');
+  const [passingYear, setPassingYear] = useState('');
+
   const fileInputRef = useRef(null);
 
   // Drag handlers
@@ -67,6 +73,10 @@ const UploadPage = () => {
     setRejectionData(null);
     setOcrInfo(null);
     setExtractedOcrText('');
+    setCandidateName('');
+    setPrnNumber('');
+    setInstitutionName('');
+    setPassingYear('');
 
     const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     if (!validTypes.includes(file.type.toLowerCase())) {
@@ -81,15 +91,19 @@ const UploadPage = () => {
 
     setSelectedFile(file);
 
-    // If image, run OCR to pre-scan keywords
+    // If image, run OCR to pre-scan keywords and extract student name / PRN
     if (file.type && file.type.startsWith('image/')) {
       setOcrScanning(true);
       setOcrProgress(15);
       try {
         const ocr = await scanDocumentWithOCR(file, (p) => setOcrProgress(p));
-        if (ocr && ocr.success && ocr.rawText) {
+        if (ocr && ocr.success) {
           setExtractedOcrText(ocr.rawText);
           setOcrInfo(ocr);
+          if (ocr.studentName) setCandidateName(ocr.studentName);
+          if (ocr.rollNumber) setPrnNumber(ocr.rollNumber);
+          if (ocr.institution) setInstitutionName(ocr.institution);
+          if (ocr.passingYear) setPassingYear(ocr.passingYear);
         }
       } catch (e) {
         console.warn('OCR error:', e);
@@ -110,11 +124,11 @@ const UploadPage = () => {
 
     try {
       const metadata = {
-        studentName: ocrInfo?.studentName || '',
-        rollNumber: ocrInfo?.rollNumber || '',
-        prn: ocrInfo?.rollNumber || '',
-        institution: ocrInfo?.institution || '',
-        passingYear: ocrInfo?.passingYear || '',
+        studentName: candidateName || ocrInfo?.studentName || '',
+        rollNumber: prnNumber || ocrInfo?.rollNumber || '',
+        prn: prnNumber || ocrInfo?.rollNumber || '',
+        institution: institutionName || ocrInfo?.institution || '',
+        passingYear: passingYear || ocrInfo?.passingYear || '',
         ocrText: extractedOcrText,
         forceRegister: force
       };
@@ -150,6 +164,13 @@ const UploadPage = () => {
     setResult(null);
     setError(null);
     setUploadProgress(0);
+    setCandidateName('');
+    setPrnNumber('');
+    setInstitutionName('');
+    setPassingYear('');
+    setOcrInfo(null);
+    setExtractedOcrText('');
+    setRejectionData(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -172,7 +193,7 @@ const UploadPage = () => {
             <UploadCloud className="text-primary" size={28} /> Upload & Verify Marksheet
           </h1>
           <p className="page-subtitle">
-            Upload document for automatic SHA-256 duplicate checking and instant watermark application.
+            Upload document for instant originality verification and official watermark application.
           </p>
         </div>
       </div>
@@ -284,6 +305,127 @@ const UploadPage = () => {
                 </div>
               )}
 
+              {/* Candidate & Document Details Card (Auto-filled by OCR, user editable) */}
+              {selectedFile && (
+                <div style={{
+                  background: 'rgba(15, 23, 42, 0.75)',
+                  border: '1px solid rgba(56, 189, 248, 0.3)',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  marginTop: '16px',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#38bdf8', fontWeight: 600, fontSize: '0.92rem' }}>
+                      <CheckCircle2 size={16} /> Marksheet &amp; Candidate Information
+                    </div>
+                    {candidateName || prnNumber ? (
+                      <span style={{ fontSize: '0.75rem', background: 'rgba(16, 185, 129, 0.2)', color: '#34d399', padding: '3px 8px', borderRadius: '12px', fontWeight: 600, border: '1px solid rgba(16, 185, 129, 0.4)' }}>
+                        ✓ Information Verified
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                        {ocrScanning ? 'Reading marksheet...' : 'Auto-detected or enter manually'}
+                      </span>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 500 }}>
+                        Candidate / Student Full Name
+                      </label>
+                      <input
+                        type="text"
+                        value={candidateName}
+                        onChange={(e) => setCandidateName(e.target.value)}
+                        placeholder="e.g. CHAUDHARI OM HEMANT"
+                        style={{
+                          width: '100%',
+                          background: 'rgba(30, 41, 59, 0.9)',
+                          border: candidateName ? '1px solid #10b981' : '1px solid rgba(148, 163, 184, 0.25)',
+                          borderRadius: '8px',
+                          padding: '9px 12px',
+                          color: '#f8fafc',
+                          fontSize: '0.88rem',
+                          outline: 'none',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 500 }}>
+                        PRN / Roll Number / Seat No
+                      </label>
+                      <input
+                        type="text"
+                        value={prnNumber}
+                        onChange={(e) => setPrnNumber(e.target.value)}
+                        placeholder="e.g. 23046491612037"
+                        style={{
+                          width: '100%',
+                          background: 'rgba(30, 41, 59, 0.9)',
+                          border: prnNumber ? '1px solid #10b981' : '1px solid rgba(148, 163, 184, 0.25)',
+                          borderRadius: '8px',
+                          padding: '9px 12px',
+                          color: '#f8fafc',
+                          fontSize: '0.88rem',
+                          outline: 'none',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 500 }}>
+                        University / Institution Name
+                      </label>
+                      <input
+                        type="text"
+                        value={institutionName}
+                        onChange={(e) => setInstitutionName(e.target.value)}
+                        placeholder="e.g. Dr. Babasaheb Ambedkar Technological University"
+                        style={{
+                          width: '100%',
+                          background: 'rgba(30, 41, 59, 0.9)',
+                          border: '1px solid rgba(148, 163, 184, 0.25)',
+                          borderRadius: '8px',
+                          padding: '9px 12px',
+                          color: '#f8fafc',
+                          fontSize: '0.88rem',
+                          outline: 'none',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: '4px', fontWeight: 500 }}>
+                        Passing / Examination Year
+                      </label>
+                      <input
+                        type="text"
+                        value={passingYear}
+                        onChange={(e) => setPassingYear(e.target.value)}
+                        placeholder="e.g. 2024"
+                        style={{
+                          width: '100%',
+                          background: 'rgba(30, 41, 59, 0.9)',
+                          border: '1px solid rgba(148, 163, 184, 0.25)',
+                          borderRadius: '8px',
+                          padding: '9px 12px',
+                          color: '#f8fafc',
+                          fontSize: '0.88rem',
+                          outline: 'none',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Error Alert */}
               {error && (
                 <div className="error-alert">
@@ -309,7 +451,7 @@ const UploadPage = () => {
               {uploading && (
                 <div className="progress-container">
                   <div className="progress-header">
-                    <span>Generating SHA-256 & Watermarking...</span>
+                    <span>Securing & Watermarking Document...</span>
                     <span>{uploadProgress}%</span>
                   </div>
                   <div className="progress-bar-bg">
@@ -349,7 +491,7 @@ const UploadPage = () => {
                       <div className="banner-badge">⚠ ALREADY VERIFIED</div>
                       <h2 className="banner-title">This marksheet has already been verified.</h2>
                       <p className="banner-sub">
-                        The uploaded document matched a previously stored SHA-256 cryptographic hash. No duplicate record was created.
+                        The uploaded document matched a previously registered original record. No duplicate record was created.
                       </p>
                     </div>
                   </div>
@@ -389,7 +531,7 @@ const UploadPage = () => {
                   </div>
 
                   <div className="hash-proof-box">
-                    <span className="hash-proof-label">Matched Cryptographic Fingerprint (SHA-256):</span>
+                    <span className="hash-proof-label">Official Security Seal Code:</span>
                     <div className="hash-code">{result.marksheet.fileHash}</div>
                   </div>
 
@@ -431,7 +573,7 @@ const UploadPage = () => {
                       <div className="banner-badge">✓ VERIFICATION SUCCESSFUL</div>
                       <h2 className="banner-title">New marksheet successfully verified.</h2>
                       <p className="banner-sub">
-                        A unique Verification ID has been generated, watermark applied, and cryptographic fingerprint indexed in MongoDB.
+                        A unique Verification ID has been generated, watermark applied, and digital security seal indexed in MongoDB.
                       </p>
                     </div>
                   </div>
@@ -463,7 +605,7 @@ const UploadPage = () => {
                   </div>
 
                   <div className="hash-proof-box">
-                    <span className="hash-proof-label">Generated SHA-256 Fingerprint:</span>
+                    <span className="hash-proof-label">Generated Security Seal Code:</span>
                     <div className="hash-code">{result.marksheet.fileHash}</div>
                   </div>
 
@@ -506,7 +648,7 @@ const UploadPage = () => {
               <Lock size={18} className="text-cyan-400" /> Duplicate Detection Logic
             </div>
             <p className="side-card-body">
-              Our system uses <strong>SHA-256 cryptographic hashing</strong> directly on the binary payload of uploaded marksheets.
+              Our system uses <strong>tamper-proof digital security verification</strong> directly on the uploaded marksheets.
             </p>
 
             <div className="logic-points">

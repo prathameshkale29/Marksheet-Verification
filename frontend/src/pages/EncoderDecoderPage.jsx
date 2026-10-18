@@ -49,13 +49,13 @@ import { scanDocumentWithOCR } from '../services/ocrService';
 
 // ─── Tab definitions ──────────────────────────────────────────────────────────
 const TABS = [
-  { id: 'marksheet-ai', label: 'Marksheet AI & 100% Originality', icon: ShieldCheck, color: '#10b981' },
-  { id: 'base64',  label: 'Base64',       icon: Code2,       color: '#38bdf8' },
-  { id: 'aes',     label: 'AES Encrypt',  icon: Lock,        color: '#a78bfa' },
-  { id: 'sha256',  label: 'SHA-256 Hash', icon: Hash,        color: '#34d399' },
-  { id: 'qr',      label: 'QR Code',      icon: QrCode,      color: '#fb923c' },
-  { id: 'hmac',    label: 'HMAC Sign',    icon: Fingerprint, color: '#f472b6' },
-  { id: 'url',     label: 'URL Encode',   icon: Link2,       color: '#facc15' },
+  { id: 'marksheet-ai', label: 'Marksheet Authenticator & Registry', icon: ShieldCheck, color: '#10b981' },
+  { id: 'base64',  label: 'Document Formatter', icon: Code2,       color: '#38bdf8' },
+  { id: 'aes',     label: 'Encrypted Vault',    icon: Lock,        color: '#a78bfa' },
+  { id: 'sha256',  label: 'Security Seal',      icon: Hash,        color: '#34d399' },
+  { id: 'qr',      label: 'Verification Stamp', icon: QrCode,      color: '#fb923c' },
+  { id: 'hmac',    label: 'Digital Certificate',icon: Fingerprint, color: '#f472b6' },
+  { id: 'url',     label: 'Safe Web Link',      icon: Link2,       color: '#facc15' },
 ];
 
 // ─── Utility ──────────────────────────────────────────────────────────────────
@@ -189,7 +189,7 @@ const Base64Tab = () => {
       <div className="info-pills">
         <span className="pill">Safe URL transport</span>
         <span className="pill">Binary-to-text</span>
-        <span className="pill">RFC 4648 standard</span>
+        <span className="pill">Universal Standard</span>
       </div>
     </div>
   );
@@ -288,9 +288,9 @@ const AESTab = () => {
       <div className="tab-header">
         <Lock size={22} className="tab-icon" style={{ color: '#a78bfa' }} />
         <div>
-          <h2 className="tab-title">AES-256 Encryption / Decryption</h2>
+          <h2 className="tab-title">Encrypted Document Vault</h2>
           <p className="tab-desc">
-            Military-grade symmetric encryption — encrypt <strong>text</strong> or any <strong>image / file</strong> with a secret passphrase.
+            Ultra-secure document vault — encrypt <strong>text</strong> or any <strong>image / file</strong> with a secret passphrase.
           </p>
         </div>
       </div>
@@ -341,7 +341,7 @@ const AESTab = () => {
               onChange={handleFileChange}
             />
             <Upload size={28} className="file-drop-icon" />
-            <span>{file ? file.name : 'Click to select an image or file to AES-encrypt'}</span>
+            <span>{file ? file.name : 'Click to select an image or file to securely encrypt'}</span>
             {file && (
               <span className="file-size-hint">
                 {file.type} &nbsp;•&nbsp; {(file.size / 1024).toFixed(1)} KB
@@ -366,7 +366,7 @@ const AESTab = () => {
           {file && !isImage(file) && (
             <div className="aes-file-badge">
               <FileText size={14} />
-              <span>{file.name} selected — will be Base64-encoded then AES-256 encrypted.</span>
+              <span>{file.name} selected — will be safely locked and encrypted.</span>
             </div>
           )}
         </div>
@@ -376,7 +376,7 @@ const AESTab = () => {
       {mode === 'decrypt' && (
         <textarea
           className="enc-textarea"
-          placeholder="Paste AES ciphertext here to decrypt..."
+          placeholder="Paste encrypted data here to decrypt..."
           value={ciphertext}
           onChange={e => setCiphertext(e.target.value)}
           rows={5}
@@ -418,7 +418,7 @@ const AESTab = () => {
       {/* Ciphertext output */}
       {output && mode === 'encrypt' && (
         <OutputBox
-          label="AES-256 Ciphertext (save this + your passphrase!)"
+          label="Encrypted Document Vault Data (save this + your passphrase!)"
           value={output}
           copyId="aes"
           copied={copied}
@@ -453,7 +453,7 @@ const AESTab = () => {
       )}
 
       <div className="info-pills">
-        <span className="pill">AES-256 CBC</span>
+        <span className="pill">Bank-Grade Encryption</span>
         <span className="pill">Image support</span>
         <span className="pill">Client-side only</span>
         <span className="pill">Zero-knowledge</span>
@@ -595,36 +595,36 @@ const SHA256Tab = () => {
       <div className="tab-header">
         <Hash size={22} className="tab-icon" style={{ color: '#34d399' }} />
         <div>
-          <h2 className="tab-title">SHA-256 Cryptographic Hasher</h2>
-          <p className="tab-desc">Generate tamper-proof SHA-256 fingerprints - the same algorithm used by this verification system.</p>
+          <h2 className="tab-title">Digital Security Seal Generator</h2>
+          <p className="tab-desc">Generate tamper-proof security seals and digital fingerprints for documents or text.</p>
         </div>
       </div>
 
       <div className="mode-toggle">
         {['text', 'file'].map((m) => (
           <button key={m} className={`mode-btn ${mode === m ? 'active' : ''}`} onClick={() => { setMode(m); reset(); }}>
-            {m === 'text' ? <><FileText size={14} /> Hash Text</> : <><Upload size={14} /> Hash File</>}
+            {m === 'text' ? <><FileText size={14} /> Seal Text</> : <><Upload size={14} /> Seal File</>}
           </button>
         ))}
       </div>
 
       {mode === 'text' ? (
-        <textarea className="enc-textarea" placeholder="Enter any text to compute its SHA-256 fingerprint..." value={input} onChange={e => setInput(e.target.value)} rows={5} />
+        <textarea className="enc-textarea" placeholder="Enter any text to compute its digital security seal..." value={input} onChange={e => setInput(e.target.value)} rows={5} />
       ) : (
         <div className="file-drop-zone" onClick={() => fileRef.current?.click()}>
           <input ref={fileRef} type="file" style={{ display: 'none' }} onChange={e => setFile(e.target.files[0])} />
           <Hash size={28} className="file-drop-icon" />
-          <span>{file ? file.name : 'Click to select a file to compute SHA-256 hash'}</span>
+          <span>{file ? file.name : 'Click to select a file to generate its security seal'}</span>
           {file && <span className="file-size-hint">({(file.size / 1024).toFixed(1)} KB)</span>}
         </div>
       )}
 
       {error && <ErrorBox message={error} />}
-      <ActionButtons onProcess={process} onReset={reset} processing={processing} label="Generate SHA-256 Hash" icon={Hash} />
+      <ActionButtons onProcess={process} onReset={reset} processing={processing} label="Generate Security Seal" icon={Hash} />
 
       {output && (
         <div className="hash-result-box">
-          <div className="hash-result-label">SHA-256 Fingerprint (256-bit / 64 hex chars)</div>
+          <div className="hash-result-label">Official Document Security Seal</div>
           <div className="hash-result-value">
             {output.match(/.{1,8}/g)?.map((chunk, i) => (
               <span key={i} className="hash-chunk">{chunk}</span>
@@ -632,7 +632,7 @@ const SHA256Tab = () => {
           </div>
           <button className="copy-btn hash-copy" onClick={() => copy(output, 'sha256')}>
             {copied === 'sha256' ? <CheckCircle2 size={14} /> : <Copy size={14} />}
-            {copied === 'sha256' ? 'Copied!' : 'Copy full hash'}
+            {copied === 'sha256' ? 'Copied!' : 'Copy Security Seal'}
           </button>
         </div>
       )}
@@ -773,14 +773,14 @@ const HMACTab = () => {
       <div className="tab-header">
         <Fingerprint size={22} className="tab-icon" style={{ color: '#f472b6' }} />
         <div>
-          <h2 className="tab-title">HMAC-SHA256 Message Signing</h2>
-          <p className="tab-desc">Generate a cryptographic signature to verify message authenticity and integrity.</p>
+          <h2 className="tab-title">Digital Authenticity Certificate Generator</h2>
+          <p className="tab-desc">Generate official digital certificate signatures to verify document authenticity and integrity.</p>
         </div>
       </div>
 
       <textarea
         className="enc-textarea"
-        placeholder="Enter the message to sign (e.g. Verification ID, metadata, payload)..."
+        placeholder="Enter the message or document details to sign (e.g. Verification ID, metadata)..."
         value={message}
         onChange={e => setMessage(e.target.value)}
         rows={4}
@@ -791,7 +791,7 @@ const HMACTab = () => {
         <input
           className="enc-input passphrase-input"
           type={showKey ? 'text' : 'password'}
-          placeholder="Enter HMAC secret key..."
+          placeholder="Enter authorization secret key..."
           value={secretKey}
           onChange={e => setSecretKey(e.target.value)}
         />
@@ -804,13 +804,13 @@ const HMACTab = () => {
       </div>
 
       {error && <ErrorBox message={error} />}
-      <ActionButtons onProcess={process} onReset={reset} processing={processing} label="Generate HMAC Signature" icon={Fingerprint} />
-      <OutputBox label="HMAC-SHA256 Signature (Hex)" value={output} copyId="hmac" copied={copied} onCopy={copy} />
+      <ActionButtons onProcess={process} onReset={reset} processing={processing} label="Generate Digital Signature" icon={Fingerprint} />
+      <OutputBox label="Official Authenticity Signature" value={output} copyId="hmac" copied={copied} onCopy={copy} />
 
       <div className="info-pills">
-        <span className="pill">Message authentication</span>
-        <span className="pill">Integrity verification</span>
-        <span className="pill">256-bit signature</span>
+        <span className="pill">Document Authentication</span>
+        <span className="pill">Integrity Verification</span>
+        <span className="pill">Digital Certification</span>
       </div>
     </div>
   );
@@ -842,22 +842,22 @@ const URLTab = () => {
       <div className="tab-header">
         <Link2 size={22} className="tab-icon" style={{ color: '#facc15' }} />
         <div>
-          <h2 className="tab-title">URL Encoder / Decoder</h2>
-          <p className="tab-desc">Encode special characters for safe URL transmission or decode percent-encoded strings.</p>
+          <h2 className="tab-title">Safe Web Link Encoder / Decoder</h2>
+          <p className="tab-desc">Encode special characters for safe web transmission or decode web-encoded strings.</p>
         </div>
       </div>
 
       <div className="mode-toggle">
         {['encode', 'decode'].map((m) => (
           <button key={m} className={`mode-btn ${mode === m ? 'active' : ''}`} onClick={() => { setMode(m); reset(); }}>
-            {m === 'encode' ? <><Link2 size={14} /> URL Encode</> : <><Unlock size={14} /> URL Decode</>}
+            {m === 'encode' ? <><Link2 size={14} /> Encode Link</> : <><Unlock size={14} /> Decode Link</>}
           </button>
         ))}
       </div>
 
       <textarea
         className="enc-textarea"
-        placeholder={mode === 'encode' ? 'Enter text or URL to encode...' : 'Paste URL-encoded string to decode...'}
+        placeholder={mode === 'encode' ? 'Enter text or URL to encode...' : 'Paste encoded string to decode...'}
         value={input}
         onChange={e => setInput(e.target.value)}
         rows={5}
@@ -865,15 +865,15 @@ const URLTab = () => {
 
       {error && <ErrorBox message={error} />}
       <ActionButtons onProcess={process} onReset={reset} processing={false}
-        label={mode === 'encode' ? 'URL Encode' : 'URL Decode'}
+        label={mode === 'encode' ? 'Encode Safe Link' : 'Decode Safe Link'}
         icon={Link2}
       />
-      <OutputBox label={mode === 'encode' ? 'URL Encoded Output' : 'Decoded Output'} value={output} copyId="url" copied={copied} onCopy={copy} />
+      <OutputBox label={mode === 'encode' ? 'Safe Link Output' : 'Decoded Output'} value={output} copyId="url" copied={copied} onCopy={copy} />
 
       <div className="info-pills">
-        <span className="pill">RFC 3986 compliant</span>
-        <span className="pill">Percent-encoding</span>
-        <span className="pill">Safe API parameters</span>
+        <span className="pill">Universal Web Standard</span>
+        <span className="pill">Safe Sharing</span>
+        <span className="pill">Cloud Ready</span>
       </div>
     </div>
   );
@@ -1074,9 +1074,9 @@ const MarksheetAITab = () => {
       <div className="tab-header">
         <ShieldCheck size={32} color="#10b981" className="tab-icon" />
         <div>
-          <div className="tab-title">Marksheet AI Authenticator &amp; 100% Originality Engine</div>
+          <div className="tab-title">Marksheet Authenticator &amp; 100% Originality Registry</div>
           <div className="tab-desc">
-            Analyzes uploaded documents to determine whether it is an authentic marksheet, encodes cryptographic SHA-256 fingerprints, and registers immutable provenance in the MongoDB virtual server for 100% originality checks on any device.
+            Analyzes uploaded documents to determine whether it is an authentic marksheet, generates tamper-proof security seals, and registers immutable provenance in the database for 100% originality checks on any device.
           </div>
         </div>
       </div>
@@ -1112,10 +1112,10 @@ const MarksheetAITab = () => {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6ee7b7' }}>
           <Database size={15} color="#10b981" />
-          <span><strong>MongoDB Virtual Server Storage:</strong> Connected &amp; Ready for Multi-Device Review</span>
+          <span><strong>Virtual Database Registry:</strong> Connected &amp; Ready for Multi-Device Review</span>
         </div>
         <span style={{ color: '#94a3b8', fontSize: '0.78rem' }}>
-          SHA-256 Bit-Exact Integrity Guarantee
+          100% Tamper-Proof Integrity Guarantee
         </span>
       </div>
 
@@ -1521,12 +1521,12 @@ const MarksheetAITab = () => {
 
                 <div style={{ gridColumn: '1 / -1' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-                    <span style={{ color: '#94a3b8', fontSize: '0.78rem' }}>SHA-256 Bit-Exact Fingerprint (MongoDB Stored)</span>
+                    <span style={{ color: '#94a3b8', fontSize: '0.78rem' }}>Unique Security Fingerprint (Registered in Database)</span>
                     <button
                       onClick={() => copy(result.data?.marksheet?.fileHash, 'res-hash')}
                       style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', fontSize: '0.75rem' }}
                     >
-                      {copied === 'res-hash' ? 'Copied!' : 'Copy Hash'}
+                      {copied === 'res-hash' ? 'Copied!' : 'Copy Code'}
                     </button>
                   </div>
                   <div style={{
@@ -1577,11 +1577,11 @@ const MarksheetAITab = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
                 <AlertTriangle size={24} color="#fb923c" />
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#fb923c', margin: 0 }}>
-                  Valid Marksheet Structure, but Not Registered in MongoDB
+                  Valid Marksheet Structure, but Not Registered in Database
                 </h3>
               </div>
               <p style={{ color: '#fed7aa', fontSize: '0.9rem', margin: '4px 0 12px' }}>
-                This file has genuine academic marksheet structure, but its SHA-256 fingerprint was not found in the MongoDB database registry. Switch to Mode 1 to register it for the first time!
+                This file has genuine academic marksheet structure, but its security fingerprint was not found in the database registry. Switch to Mode 1 to register it for the first time!
               </p>
               <button
                 className="btn btn-primary"
@@ -1597,8 +1597,8 @@ const MarksheetAITab = () => {
       {/* Info Pills */}
       <div className="info-pills">
         <span className="pill">AI Marksheet Detection</span>
-        <span className="pill">SHA-256 Bit-Exact Integrity</span>
-        <span className="pill">MongoDB Cloud / Virtual Server</span>
+        <span className="pill">100% Tamper-Proof Guarantee</span>
+        <span className="pill">Virtual Cloud Database</span>
         <span className="pill">Cross-Device Accessible</span>
       </div>
     </div>
@@ -1632,7 +1632,7 @@ const EncoderDecoderPage = () => {
             <Zap className="text-primary" size={28} /> Encoding &amp; Decoding Laboratory
           </h1>
           <p className="page-subtitle">
-            All-in-one cryptographic toolkit - Base64, AES-256 Encryption, SHA-256 Hashing, QR Code, HMAC Signing &amp; URL Encoding.
+            Complete document security, authenticity verification, and encoding laboratory.
           </p>
         </div>
       </div>

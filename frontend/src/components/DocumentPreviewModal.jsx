@@ -90,13 +90,13 @@ const DocumentPreviewModal = ({ marksheet, onClose }) => {
               </div>
             </div>
 
-            {/* SHA-256 Hash Display */}
+            {/* Security Seal Fingerprint Display */}
             <div className="hash-box">
               <div className="hash-header">
-                <span>SHA-256 Cryptographic Fingerprint</span>
+                <span>Official Security Seal Fingerprint</span>
                 <button className="copy-btn" onClick={handleCopyHash}>
                   {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-                  <span>{copied ? 'Copied' : 'Copy Hash'}</span>
+                  <span>{copied ? 'Copied' : 'Copy Code'}</span>
                 </button>
               </div>
               <div className="hash-code">{marksheet.fileHash}</div>

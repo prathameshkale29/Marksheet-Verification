@@ -83,9 +83,21 @@ const uploadAndVerifyMarksheet = async (req, res, next) => {
       });
     }
 
-    // 2. Generate Bit-Exact SHA-256 and SHA-512 Cryptographic Hashes
+    // 2. Generate Bit-Exact Unique Cryptographic Security Fingerprint
     const fileHash = hashService.generateFileHash(buffer);
     const sha512Hash = cryptoEncodingService.generateSHA512(buffer);
+
+    // Populate candidate details from extracted OCR if not provided in request body
+    if (!candidateDetails.studentName && analysis.extractedDetails?.studentName && analysis.extractedDetails.studentName !== 'Candidate / Student') {
+      candidateDetails.studentName = analysis.extractedDetails.studentName;
+    }
+    if (!candidateDetails.rollNumber && analysis.extractedDetails?.rollNumber && analysis.extractedDetails.rollNumber !== 'N/A') {
+      candidateDetails.rollNumber = analysis.extractedDetails.rollNumber;
+      candidateDetails.prn = analysis.extractedDetails.rollNumber;
+    }
+    if (!candidateDetails.institution && analysis.extractedDetails?.institution) {
+      candidateDetails.institution = analysis.extractedDetails.institution;
+    }
 
     // 3. Search MongoDB for existing record to verify provenance
     const existingMarksheet = await Marksheet.findOne({ fileHash });

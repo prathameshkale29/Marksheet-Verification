@@ -129,7 +129,7 @@ const AdminDashboard = () => {
               <Search size={16} className="search-icon" />
               <input
                 type="text"
-                placeholder="Search by Verification ID, filename, or SHA-256 hash..."
+                placeholder="Search by Verification ID, filename, or Security Code..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="search-input-sm"

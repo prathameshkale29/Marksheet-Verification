@@ -59,7 +59,7 @@ const Dashboard = () => {
           <h1 className="page-title">
             <ShieldCheck className="text-primary" size={28} /> Verification Dashboard
           </h1>
-          <p className="page-subtitle">Real-time SHA-256 cryptographic document verification & watermark status overview.</p>
+          <p className="page-subtitle">Real-time digital document authenticity verification & watermark status overview.</p>
         </div>
 
         <div className="header-actions">
@@ -95,7 +95,7 @@ const Dashboard = () => {
           icon={Copy}
           color="amber"
           badgeText="PREVENTED"
-          description="Matched SHA-256 hashes"
+          description="Matched Security Records"
         />
         <StatsCard
           title="Today's Verifications"
@@ -129,8 +129,8 @@ const Dashboard = () => {
             <div className="step-item">
               <div className="step-num">2</div>
               <div className="step-info">
-                <strong>SHA-256 Fingerprint</strong>
-                <span>Compute hash from raw file buffer</span>
+                <strong>Digital Security Seal</strong>
+                <span>Compute tamper-proof fingerprint from file</span>
               </div>
             </div>
             <div className="step-arrow">↓</div>
@@ -139,18 +139,18 @@ const Dashboard = () => {
               <div className="step-num"><Database size={14} /></div>
               <div className="step-info">
                 <strong>MongoDB Unique Index Search</strong>
-                <span>Instant exact hash comparison</span>
+                <span>Instant provenance record comparison</span>
               </div>
             </div>
             <div className="step-arrow">↓</div>
 
             <div className="step-outcomes">
               <div className="outcome-box match">
-                <span className="outcome-title">✓ HASH MATCH</span>
+                <span className="outcome-title">✓ RECORD MATCH</span>
                 <span className="outcome-text">Display <strong>Already Verified</strong> record without duplicating data.</span>
               </div>
               <div className="outcome-box new">
-                <span className="outcome-title">✦ NEW HASH</span>
+                <span className="outcome-title">✦ NEW REGISTRATION</span>
                 <span className="outcome-text">Generate <strong>VER-2026-XXXXXX</strong> ID, embed watermark & save.</span>
               </div>
             </div>
@@ -185,7 +185,7 @@ const Dashboard = () => {
               <div className="feature-icon"><AlertTriangle size={18} /></div>
               <div>
                 <strong>Tamper-Proof Duplication Shield</strong>
-                <p>Renaming files does not bypass security; exact SHA-256 hash comparison detects duplicate uploads instantly.</p>
+                <p>Renaming files does not bypass security; exact digital fingerprint comparison detects duplicate uploads instantly.</p>
               </div>
             </div>
           </div>
@@ -216,7 +216,7 @@ const Dashboard = () => {
               <tr>
                 <th>Attempt ID</th>
                 <th>Original File</th>
-                <th>SHA-256 Hash</th>
+                <th>Security Code</th>
                 <th>Result Status</th>
                 <th>Verification ID</th>
                 <th>Date & Time</th>

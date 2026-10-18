@@ -64,7 +64,7 @@ const VerifiedDocuments = () => {
             <FileCheck2 className="text-primary" size={28} /> Verified Documents Database
           </h1>
           <p className="page-subtitle">
-            Repository of unique verified marksheets saved in MongoDB Atlas with SHA-256 fingerprints.
+            Repository of unique verified marksheets saved securely in the database.
           </p>
         </div>
       </div>
@@ -76,7 +76,7 @@ const VerifiedDocuments = () => {
             <Search size={18} className="search-icon" />
             <input
               type="text"
-              placeholder="Search by Verification ID (VER-2026-...), filename, or SHA-256 hash..."
+              placeholder="Search by Verification ID, student name, or security code..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="search-input"
@@ -111,7 +111,7 @@ const VerifiedDocuments = () => {
               <tr>
                 <th>Verification ID</th>
                 <th>Original Document Name</th>
-                <th>SHA-256 Fingerprint</th>
+                <th>Security Code</th>
                 <th>Status</th>
                 <th>Watermark</th>
                 <th>Verified Date</th>

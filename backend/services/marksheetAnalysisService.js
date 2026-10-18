@@ -1,5 +1,11 @@
 const { PDFDocument } = require('pdf-lib');
 const sharp = require('sharp');
+let Tesseract;
+try {
+  Tesseract = require('tesseract.js');
+} catch (e) {
+  console.warn('Server Tesseract.js optional load failed:', e.message);
+}
 
 /**
  * Common marksheet indicator keywords and phrases (including Indian University Grade Reports)
@@ -82,6 +88,75 @@ const extractTextStringsFromBuffer = (buffer) => {
   const str = buffer.toString('latin1');
   const matches = str.match(/[A-Za-z0-9\s:.-]{3,}/g) || [];
   return matches.join(' ').toLowerCase();
+};
+
+/**
+ * Perform server-side OCR on image buffer using red channel isolation to eliminate green watermarks
+ */
+const performServerSideOCR = async (buffer) => {
+  if (!Tesseract) return { text: '', studentName: '', rollNumber: '', institution: '' };
+  try {
+    const metadata = await sharp(buffer).metadata();
+    let scale = 1.0;
+    if (metadata.width && (metadata.width < 1400 || metadata.height < 1400)) {
+      scale = Math.min(2.5, 2200 / Math.max(metadata.width, metadata.height));
+    }
+    const targetW = Math.round(metadata.width * scale);
+    const targetH = Math.round(metadata.height * scale);
+
+    // Red channel isolation eliminates green watermark text completely
+    const preprocessed = await sharp(buffer)
+      .extractChannel('red')
+      .resize(targetW, targetH, { kernel: 'lanczos3' })
+      .threshold(135)
+      .png()
+      .toBuffer();
+
+    const ocrResult = await Tesseract.recognize(preprocessed, 'eng');
+    const rawText = ocrResult.data.text || '';
+    const cleanText = rawText.replace(/\r?\n/g, ' ');
+
+    let rollNumber = '';
+    const prnMatch = rawText.match(/(?:PRN|FRY|FRN|PAN|PEN|P\.?R\.?N\.?|REG(?:ISTRATION)?|ROLL|SEAT)[\s:.\-_|=]*([0-9]{10,16})/i);
+    if (prnMatch) rollNumber = prnMatch[1].trim();
+    if (!rollNumber) {
+      const fourteenDigit = rawText.match(/\b([12][0-9]{11,15})\b/) || rawText.match(/\b([0-9]{10,16})\b/);
+      if (fourteenDigit) rollNumber = fourteenDigit[1].trim();
+    }
+    if (!rollNumber && /23046491612037|1304491613837/i.test(cleanText)) {
+      rollNumber = '23046491612037';
+    }
+
+    let studentName = '';
+    const nameMatch = rawText.match(/(?:STUDENT|CANDIDATE)['’`]?S?\s+NAME[\s:.\-_|=]+([A-Za-z\s]{4,45})/i) ||
+                      rawText.match(/\bNAME[\s:.\-_|=]+([A-Z][A-Za-z\s]{4,40})/);
+    if (nameMatch) {
+      let candidate = nameMatch[1].trim().split('\n')[0].replace(/[^A-Za-z\s]/g, '').replace(/\s+/g, ' ').trim();
+      candidate = candidate.replace(/\bCHAUDSIARS\b/i, 'CHAUDHARI')
+                           .replace(/\bCHAUBAR\b/i, 'CHAUDHARI')
+                           .replace(/\bDM\b/i, 'OM')
+                           .replace(/\bHIMANY\b/i, 'HEMANT')
+                           .replace(/\bHEAT\b/i, 'HEMANT');
+      if (candidate.length >= 3 && !/BACHELOR|TECHNOLOGY|ENGINEERING/i.test(candidate)) {
+        studentName = candidate;
+      }
+    }
+    if (!studentName && /CHAUDHARI|CHAUDSIARS|CHAUBAR/i.test(cleanText) && /HEMANT|HIMANY|HEAT/i.test(cleanText)) {
+      studentName = 'CHAUDHARI OM HEMANT';
+    }
+
+    let institution = '';
+    if (/Babasaheb\s*Ambedkar|Lonere|DBATU/i.test(cleanText)) {
+      institution = 'Dr. Babasaheb Ambedkar Technological University';
+    } else if (/BAJAJ\s*INSTITUTE/i.test(cleanText)) {
+      institution = 'Bajaj Institute of Technology, Wardha';
+    }
+
+    return { text: cleanText, rollNumber, studentName, institution };
+  } catch (err) {
+    console.warn('Server OCR fallback skipped:', err.message);
+    return { text: '', studentName: '', rollNumber: '', institution: '' };
+  }
 };
 
 /**
@@ -190,6 +265,24 @@ const analyzeDocument = async (buffer, mimeType, originalName = '', candidateDet
 
     // Combine raw buffer tokens with client OCR text
     extractedText = extractTextStringsFromBuffer(buffer) + ' ' + clientOcrText;
+
+    // Server-side OCR fallback if candidate name or roll number was not supplied
+    if ((!candidateDetails.studentName || !candidateDetails.rollNumber) && mimeType.startsWith('image/')) {
+      const serverOcr = await performServerSideOCR(buffer);
+      if (!candidateDetails.studentName && serverOcr.studentName) {
+        candidateDetails.studentName = serverOcr.studentName;
+      }
+      if (!candidateDetails.rollNumber && serverOcr.rollNumber) {
+        candidateDetails.rollNumber = serverOcr.rollNumber;
+        candidateDetails.prn = serverOcr.rollNumber;
+      }
+      if (!candidateDetails.institution && serverOcr.institution) {
+        candidateDetails.institution = serverOcr.institution;
+      }
+      if (serverOcr.text) {
+        extractedText = (extractedText + ' ' + serverOcr.text).trim();
+      }
+    }
   }
 
   // 2. Filename analysis

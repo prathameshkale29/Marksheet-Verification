@@ -84,7 +84,7 @@ const MarksheetReviewPage = () => {
           <div className="spinner" style={{ margin: '0 auto 16px' }} />
           <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Retrieving Marksheet from MongoDB Virtual Server...</h2>
           <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginTop: '6px' }}>
-            Verifying SHA-256 cryptographic proof and provenance record
+            Verifying digital authenticity proof and provenance record
           </p>
         </div>
       </div>
@@ -268,7 +268,7 @@ const MarksheetReviewPage = () => {
 
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                  <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Cryptographic SHA-256 Hash</span>
+                  <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Digital Security Seal Fingerprint</span>
                   <button
                     onClick={handleCopyHash}
                     style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}
@@ -340,7 +340,7 @@ const MarksheetReviewPage = () => {
             {marksheet.encodedToken && (
               <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
                 <span style={{ color: '#94a3b8', fontSize: '0.8rem', display: 'block', marginBottom: '4px' }}>
-                  Tamper-Proof Encoded Token (HMAC-SHA256 Signed)
+                  Official Digital Certificate Token
                 </span>
                 <div style={{
                   background: 'rgba(15, 23, 42, 0.7)',

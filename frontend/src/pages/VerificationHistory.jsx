@@ -59,7 +59,7 @@ const VerificationHistory = () => {
             <Search size={18} className="search-icon" />
             <input
               type="text"
-              placeholder="Search by Matched ID, filename, or SHA-256 hash snippet..."
+              placeholder="Search by Matched ID, filename, or Security Code snippet..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="search-input"
@@ -81,7 +81,7 @@ const VerificationHistory = () => {
               <tr>
                 <th>Attempt ID</th>
                 <th>File Name</th>
-                <th>SHA-256 Hash</th>
+                <th>Security Fingerprint</th>
                 <th>Result Status</th>
                 <th>Matched / Created ID</th>
                 <th>IP Address</th>
