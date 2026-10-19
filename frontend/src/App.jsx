@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
@@ -8,7 +8,6 @@ import VerifiedDocuments from './pages/VerifiedDocuments';
 import VerificationHistory from './pages/VerificationHistory';
 import AdminDashboard from './pages/AdminDashboard';
 import SettingsPage from './pages/SettingsPage';
-import EncoderDecoderPage from './pages/EncoderDecoderPage';
 import MarksheetReviewPage from './pages/MarksheetReviewPage';
 
 function App() {
@@ -25,7 +24,7 @@ function App() {
             <Route path="/history" element={<VerificationHistory />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/encode" element={<EncoderDecoderPage />} />
+            <Route path="/encode" element={<Navigate to="/upload" replace />} />
             <Route path="/review/:verificationId" element={<MarksheetReviewPage />} />
           </Routes>
         </div>

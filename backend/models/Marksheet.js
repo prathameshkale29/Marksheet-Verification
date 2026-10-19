@@ -76,10 +76,20 @@ const MarksheetSchema = new mongoose.Schema(
     },
     uploaderInfo: {
       name: { type: String, default: 'Original Student / University Registrar' },
-      email: { type: String, default: 'registrar@institution.edu' },
+      email: { type: String, default: 'prathamesh626741@gmail.com' },
       organization: { type: String, default: 'Academic Board of Examination' },
       ipAddress: { type: String, default: '127.0.0.1' },
       deviceInfo: { type: String, default: 'Web Portal Client' }
+    },
+    candidateDetails: {
+      studentName: { type: String, default: '' },
+      rollNumber: { type: String, default: '' },
+      prn: { type: String, default: '' },
+      institution: { type: String, default: '' },
+      boardOrUniversity: { type: String, default: '' },
+      passingYear: { type: String, default: '' },
+      courseOrDegree: { type: String, default: '' },
+      totalMarksOrGrade: { type: String, default: '' }
     },
     marksheetAnalysis: {
       isMarksheet: { type: Boolean, default: true },
@@ -90,6 +100,7 @@ const MarksheetSchema = new mongoose.Schema(
       extractedDetails: {
         studentName: { type: String, default: '' },
         rollNumber: { type: String, default: '' },
+        prn: { type: String, default: '' },
         institution: { type: String, default: '' },
         boardOrUniversity: { type: String, default: '' },
         passingYear: { type: String, default: '' },

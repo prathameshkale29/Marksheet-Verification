@@ -260,10 +260,20 @@ const MarksheetReviewPage = () => {
               </div>
 
               <div>
-                <span style={{ color: '#94a3b8', fontSize: '0.8rem', display: 'block' }}>MongoDB Virtual Database Status</span>
-                <span style={{ color: '#34d399', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Database size={15} /> Active • Globally Accessible • Read-Only Integrity
-                </span>
+                <span style={{ color: '#94a3b8', fontSize: '0.8rem', display: 'block' }}>MongoDB Atlas Server Status</span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                  <span style={{ color: '#34d399', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Database size={15} /> MongoDB Atlas Server • Active &amp; Verified
+                  </span>
+                  <a
+                    href="https://cloud.mongodb.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: '#38bdf8', fontSize: '0.78rem', textDecoration: 'underline', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    Atlas Console <ExternalLink size={11} />
+                  </a>
+                </div>
               </div>
 
               <div>

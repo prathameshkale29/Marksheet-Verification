@@ -15,11 +15,10 @@ import {
 const Sidebar = () => {
   const navItems = [
     { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-    { path: '/upload', label: 'Upload Marksheet', icon: UploadCloud, badge: 'VERIFY' },
+    { path: '/upload', label: 'Upload & Verify Marksheet', icon: UploadCloud, badge: 'ATLAS' },
     { path: '/documents', label: 'Verified Documents', icon: FileCheck2 },
     { path: '/history', label: 'Verification History', icon: History },
     { path: '/admin', label: 'Admin Dashboard', icon: ShieldAlert },
-    { path: '/encode', label: 'Marksheet Authenticator', icon: ShieldCheck, badge: 'OFFICIAL' },
     { path: '/settings', label: 'Settings', icon: Settings },
   ];
 
@@ -49,7 +48,7 @@ const Sidebar = () => {
           <Sparkles size={16} className="sparkle-icon" />
           <span>Storage Engine</span>
         </div>
-        <p className="info-body">Local Storage + MongoDB Atlas Unique Fingerprint Index active.</p>
+        <p className="info-body">MongoDB Atlas Server + Cryptographic Fingerprint Registry active.</p>
       </div>
 
       <style>{`

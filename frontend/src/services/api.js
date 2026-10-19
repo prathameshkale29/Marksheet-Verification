@@ -31,6 +31,8 @@ export const uploadMarksheet = async (file, metadata = {}, onProgress) => {
   if (metadata.institution) formData.append('institution', metadata.institution);
   if (metadata.boardOrUniversity) formData.append('boardOrUniversity', metadata.boardOrUniversity);
   if (metadata.passingYear) formData.append('passingYear', metadata.passingYear);
+  if (metadata.courseOrDegree) formData.append('courseOrDegree', metadata.courseOrDegree);
+  if (metadata.totalMarksOrGrade) formData.append('totalMarksOrGrade', metadata.totalMarksOrGrade);
   if (metadata.uploaderName) formData.append('uploaderName', metadata.uploaderName);
   if (metadata.uploaderEmail) formData.append('uploaderEmail', metadata.uploaderEmail);
   if (metadata.ocrText) formData.append('ocrText', metadata.ocrText);

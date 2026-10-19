@@ -7,8 +7,12 @@ const connectDB = async () => {
   try {
     let mongoUri = process.env.MONGODB_URI;
 
-    if (!mongoUri || mongoUri.trim() === '' || mongoUri.includes('YOUR_MONGODB')) {
-      console.log('⚠️  No MongoDB Atlas URI specified in environment. Starting in-memory MongoDB server for instant setup...');
+    if (!mongoUri || mongoUri.trim() === '' || mongoUri.includes('YOUR_MONGODB') || mongoUri.includes('<db_password>')) {
+      if (mongoUri && mongoUri.includes('<db_password>')) {
+        console.log('⚠️  MongoDB Atlas URI contains placeholder "<db_password>". Waiting for actual database user password in backend/.env.');
+      } else {
+        console.log('⚠️  No MongoDB Atlas URI specified in environment. Starting in-memory MongoDB server for instant setup...');
+      }
       mongoMemoryServer = await MongoMemoryServer.create();
       mongoUri = mongoMemoryServer.getUri();
       console.log(`🚀 In-Memory MongoDB running at: ${mongoUri}`);

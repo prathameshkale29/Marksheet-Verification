@@ -239,6 +239,29 @@ input, select, textarea {
   border-color: #34d399;
 }
 
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.btn-lg {
+  padding: 14px 28px;
+  font-size: 1.05rem;
+}
+
+.btn-xl {
+  padding: 18px 36px;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.w-full {
+  width: 100%;
+}
+
 /* Badges */
 .badge {
   display: inline-flex;

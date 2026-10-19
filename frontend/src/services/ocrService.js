@@ -172,7 +172,24 @@ export const scanDocumentWithOCR = async (file, onProgress) => {
       if (yearDigits) passingYear = yearDigits[0];
     }
 
-    // 5. Check Academic Keywords
+    // 5. Extract Course / Programme / Degree
+    let courseOrDegree = '';
+    const courseMatch = rawText.match(/(?:BACHELOR|MASTER|DIPLOMA|B\.?TECH|M\.?TECH|B\.?E\.?|B\.?SC|B\.?C\.?A|M\.?B\.?A)[\w\s]{2,40}(?:ENGINEERING|TECHNOLOGY|SCIENCE|COMMERCE|ARTS|MANAGEMENT)?/i);
+    if (courseMatch && courseMatch[0]) {
+      courseOrDegree = courseMatch[0].trim().replace(/\s+/g, ' ');
+    } else if (/COMPUTER\s*ENGINEERING|INFORMATION\s*TECHNOLOGY|MECHANICAL|CIVIL|ELECTRICAL/i.test(cleanText)) {
+      const branchMatch = cleanText.match(/(?:COMPUTER\s*ENGINEERING|INFORMATION\s*TECHNOLOGY|MECHANICAL\s*ENGINEERING|CIVIL\s*ENGINEERING|ELECTRICAL\s*ENGINEERING)/i);
+      if (branchMatch) courseOrDegree = `B.Tech in ${branchMatch[0]}`;
+    }
+
+    // 6. Extract SGPA / CGPA / Grade
+    let totalMarksOrGrade = '';
+    const sgpaMatch = rawText.match(/(?:SGPA|CGPA|PERCENTAGE|GRADE)[\s:.\-_|=]*([0-9]{1,2}(?:\.[0-9]{1,2})?|[A-O][+]?)/i);
+    if (sgpaMatch && sgpaMatch[1]) {
+      totalMarksOrGrade = `${sgpaMatch[0].split(/[:|=]/)[0].trim().toUpperCase()}: ${sgpaMatch[1]}`;
+    }
+
+    // 7. Check Academic Keywords
     const keywordsFound = [];
     const checkTerms = [
       'semester grade report',
@@ -188,8 +205,17 @@ export const scanDocumentWithOCR = async (file, onProgress) => {
       'prn',
       'subject code',
       'subject name',
-      'university'
+      'university',
+      'examination',
+      'marksheet',
+      'passed'
     ];
+
+    checkTerms.forEach((term) => {
+      if (cleanText.toLowerCase().includes(term.toLowerCase())) {
+        keywordsFound.push(term);
+      }
+    });
 
     // Extract Serial Number / Certificate Number (e.g. StNo.: 1252568, Sr. No. 1252568)
     let srNo = '';
@@ -204,16 +230,21 @@ export const scanDocumentWithOCR = async (file, onProgress) => {
 
     // Strict marksheet requirement: Must have academic grading/exam keywords AND candidate credentials (Name or PRN/Sr No)
     const isMarksheetDetected = hasAcademicKeywords && (hasName || hasId);
+    let confidenceScore = Math.min(99, (keywordsFound.length * 15) + (hasName ? 25 : 0) + (hasId ? 30 : 0));
 
     return {
       success: true,
       rawText,
       studentName: studentName || '',
       rollNumber: rollNumber || srNo || '',
+      prn: rollNumber || srNo || '',
       srNo: srNo || '',
       institution: institution || '',
       passingYear: passingYear || new Date().getFullYear().toString(),
+      courseOrDegree: courseOrDegree || 'Bachelor of Technology',
+      totalMarksOrGrade: totalMarksOrGrade || '',
       isMarksheetDetected,
+      confidenceScore,
       keywordsFound
     };
   } catch (err) {
