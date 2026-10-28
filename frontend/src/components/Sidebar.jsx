@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { 
   LayoutDashboard, 
   UploadCloud, 
@@ -8,24 +9,36 @@ import {
   ShieldAlert, 
   Settings,
   Sparkles,
-  Code2,
-  ShieldCheck
+  ClipboardList
 } from 'lucide-react';
 
 const Sidebar = () => {
-  const navItems = [
-    { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-    { path: '/upload', label: 'Upload & Verify Marksheet', icon: UploadCloud, badge: 'ATLAS' },
+  const { isAdmin, user } = useAuth();
+
+  const studentItems = [
+    { path: '/', label: 'Overview Dashboard', icon: LayoutDashboard },
+    { path: '/upload', label: 'Upload Marksheet', icon: UploadCloud, badge: 'STUDENT' },
     { path: '/documents', label: 'Verified Documents', icon: FileCheck2 },
     { path: '/history', label: 'Verification History', icon: History },
-    { path: '/admin', label: 'Admin Dashboard', icon: ShieldAlert },
-    { path: '/settings', label: 'Settings', icon: Settings },
   ];
+
+  const adminItems = [
+    { path: '/', label: 'Overview Dashboard', icon: LayoutDashboard },
+    { path: '/upload', label: 'Upload Marksheet', icon: UploadCloud },
+    { path: '/admin', label: 'Admin Portal', icon: ShieldAlert, badge: 'STAFF' },
+    { path: '/documents', label: 'Verified Documents', icon: FileCheck2 },
+    { path: '/history', label: 'Verification History', icon: History },
+    { path: '/settings', label: 'College Logo & Settings', icon: Settings },
+  ];
+
+  const navItems = isAdmin ? adminItems : studentItems;
 
   return (
     <aside className="sidebar-container">
       <nav className="sidebar-nav">
-        <div className="nav-group-label">NAVIGATION</div>
+        <div className="nav-group-label">
+          {isAdmin ? 'COLLEGE ADMIN PORTAL' : 'STUDENT VERIFICATION SYSTEM'}
+        </div>
         {navItems.map((item) => {
           const Icon = item.icon;
           return (
@@ -33,22 +46,41 @@ const Sidebar = () => {
               key={item.path}
               to={item.path}
               className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+              end={item.path === '/'}
             >
               <Icon size={19} className="nav-icon" />
               <span className="nav-label">{item.label}</span>
-              {item.badge && <span className="nav-badge">{item.badge}</span>}
+              {item.badge && (
+                <span className={`nav-badge ${item.badge === 'STAFF' ? 'staff-badge' : ''}`}>
+                  {item.badge}
+                </span>
+              )}
             </NavLink>
           );
         })}
       </nav>
 
-      {/* Modern Storage Mode Card */}
+      {/* User Card */}
       <div className="sidebar-info-card glass-card">
         <div className="info-header">
           <Sparkles size={16} className="sparkle-icon" />
-          <span>Storage Engine</span>
+          <span>{isAdmin ? 'Admin Panel' : 'Verification System'}</span>
         </div>
-        <p className="info-body">MongoDB Atlas Server + Cryptographic Fingerprint Registry active.</p>
+        <p className="info-body">
+          {isAdmin 
+            ? 'Review submissions, approve/reject marksheets, and manage institutional settings.'
+            : 'Upload marksheets for verification, track status, and download approved documents.'
+          }
+        </p>
+        {user && (
+          <div className="sidebar-user-info">
+            <div className="user-avatar">{(user.name || 'U')[0].toUpperCase()}</div>
+            <div>
+              <div className="user-name">{user.name || 'User'}</div>
+              <div className="user-role">{isAdmin ? 'Administrator' : 'Student'}</div>
+            </div>
+          </div>
+        )}
       </div>
 
       <style>{`
@@ -64,7 +96,7 @@ const Sidebar = () => {
         }
 
         .nav-group-label {
-          font-size: 0.7rem;
+          font-size: 0.68rem;
           font-weight: 700;
           color: var(--text-dim);
           letter-spacing: 0.1em;
@@ -112,9 +144,15 @@ const Sidebar = () => {
           font-weight: 700;
           padding: 2px 6px;
           border-radius: 4px;
-          background: rgba(16, 185, 129, 0.2);
-          color: #34d399;
-          border: 1px solid rgba(16, 185, 129, 0.3);
+          background: rgba(6, 182, 212, 0.2);
+          color: #38bdf8;
+          border: 1px solid rgba(6, 182, 212, 0.3);
+        }
+
+        .nav-badge.staff-badge {
+          background: rgba(245, 158, 11, 0.2);
+          color: #fbbf24;
+          border-color: rgba(245, 158, 11, 0.3);
         }
 
         .sidebar-info-card {
@@ -140,9 +178,43 @@ const Sidebar = () => {
         }
 
         .info-body {
-          font-size: 0.78rem;
+          font-size: 0.76rem;
           color: var(--text-muted);
           line-height: 1.4;
+          margin-bottom: 12px;
+        }
+
+        .sidebar-user-info {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding-top: 10px;
+          border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .user-avatar {
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-size: 0.82rem;
+          font-weight: 700;
+          flex-shrink: 0;
+        }
+
+        .user-name {
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: var(--text-main);
+        }
+
+        .user-role {
+          font-size: 0.7rem;
+          color: var(--text-dim);
         }
 
         @media (max-width: 768px) {

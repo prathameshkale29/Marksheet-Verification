@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   ShieldAlert, 
   FileCheck2, 
@@ -11,7 +12,13 @@ import {
   Download, 
   RefreshCw,
   Lock,
-  Database
+  Database,
+  XCircle,
+  AlertTriangle,
+  Building,
+  CheckCircle,
+  ExternalLink,
+  ChevronRight
 } from 'lucide-react';
 import StatsCard from '../components/StatsCard';
 import DocumentPreviewModal from '../components/DocumentPreviewModal';
@@ -22,6 +29,9 @@ const AdminDashboard = () => {
   const [stats, setStats] = useState({
     totalMarksheets: 0,
     verifiedCount: 0,
+    pendingCount: 0,
+    needsReviewCount: 0,
+    rejectedCount: 0,
     duplicateUploads: 0,
     todaysVerifications: 0
   });
@@ -68,51 +78,55 @@ const AdminDashboard = () => {
       <div className="page-header">
         <div>
           <h1 className="page-title">
-            <ShieldAlert className="text-amber-400" size={28} /> Administrative Control Portal
+            <ShieldAlert className="text-amber-400" size={28} /> College Administration &amp; Student Section Portal
           </h1>
           <p className="page-subtitle">
-            System overview, database record management, and cryptographic duplicate monitoring.
+            Review uploaded marksheets, authenticate against authorized institutional records, issue verified watermarked documents, and audit all actions.
           </p>
         </div>
 
         <div className="header-actions">
+          <Link to="/settings" className="btn btn-secondary">
+            <Building size={16} /> Configure College Logo &amp; Details
+          </Link>
           <button className="btn btn-secondary" onClick={loadAdminData}>
-            <RefreshCw size={16} className={loading ? 'spin' : ''} /> Refresh Dashboard
+            <RefreshCw size={16} className={loading ? 'spin' : ''} /> Refresh
           </button>
         </div>
       </div>
 
       {/* Recommended Admin Metrics Grid */}
-      <div className="grid-4" style={{ marginBottom: '32px' }}>
+      <div className="grid-4" style={{ marginBottom: '28px' }}>
         <StatsCard
-          title="Total Marksheets"
+          title="Total Submissions"
           value={stats.totalMarksheets}
           icon={FileCheck2}
           color="blue"
-          description="Indexed MongoDB documents"
+          description="Indexed marksheet records"
         />
         <StatsCard
-          title="Verified"
+          title="Pending Approval"
+          value={stats.pendingCount || 0}
+          icon={Clock}
+          color="cyan"
+          badgeText="ACTION REQUIRED"
+          description="Awaiting student section review"
+        />
+        <StatsCard
+          title="Flagged / Review"
+          value={stats.needsReviewCount || 0}
+          icon={AlertTriangle}
+          color="amber"
+          badgeText="INSPECT"
+          description="Low confidence or discrepancy"
+        />
+        <StatsCard
+          title="Verified Documents"
           value={stats.verifiedCount}
           icon={ShieldCheck}
           color="emerald"
-          badgeText="ACTIVE"
-          description="Authenticated marksheets"
-        />
-        <StatsCard
-          title="Duplicate Uploads"
-          value={stats.duplicateUploads}
-          icon={Copy}
-          color="amber"
-          badgeText="INTERCEPTED"
-          description="Hash collisions detected"
-        />
-        <StatsCard
-          title="Today's Verifications"
-          value={stats.todaysVerifications}
-          icon={Clock}
-          color="cyan"
-          description="Requests processed today"
+          badgeText="APPROVED"
+          description="Officially sealed with QR code"
         />
       </div>
 
@@ -120,8 +134,8 @@ const AdminDashboard = () => {
       <div className="glass-card">
         <div className="admin-table-header">
           <div>
-            <h3>All Marksheet Records</h3>
-            <p className="table-subtitle">Search, filter, and inspect verified document records</p>
+            <h3>Marksheet Submissions Management</h3>
+            <p className="table-subtitle">Search, filter by verification status, and conduct side-by-side authenticity reviews</p>
           </div>
 
           <form onSubmit={handleSearchSubmit} className="admin-search-form">
@@ -129,7 +143,7 @@ const AdminDashboard = () => {
               <Search size={16} className="search-icon" />
               <input
                 type="text"
-                placeholder="Search by Verification ID, filename, or Security Code..."
+                placeholder="Search by Verification ID, candidate name, roll number, or program..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="search-input-sm"
@@ -140,9 +154,11 @@ const AdminDashboard = () => {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="filter-select-sm"
             >
-              <option value="ALL">All Statuses</option>
-              <option value="VERIFIED">Verified</option>
-              <option value="REVOKED">Revoked</option>
+              <option value="ALL">All Statuses ({stats.totalMarksheets})</option>
+              <option value="PENDING">Pending Review ({stats.pendingCount || 0})</option>
+              <option value="NEEDS_REVIEW">Needs Review / Flagged ({stats.needsReviewCount || 0})</option>
+              <option value="VERIFIED">Verified ({stats.verifiedCount || 0})</option>
+              <option value="REJECTED">Rejected ({stats.rejectedCount || 0})</option>
             </select>
             <button type="submit" className="btn btn-primary btn-sm">Filter</button>
           </form>
@@ -153,69 +169,116 @@ const AdminDashboard = () => {
             <thead>
               <tr>
                 <th>Verification ID</th>
-                <th>File Name</th>
+                <th>Candidate &amp; Roll Number</th>
+                <th>Document Name</th>
                 <th>Status</th>
-                <th>Uploaded Date</th>
-                <th style={{ textAlign: 'right' }}>Action</th>
+                <th>Institutional Match</th>
+                <th>Submission Date</th>
+                <th style={{ textAlign: 'right' }}>Review Action</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="5" className="text-center py-8 text-muted">
-                    Loading administrative records...
+                  <td colSpan="7" className="text-center py-8 text-muted">
+                    Loading administrative records from database...
                   </td>
                 </tr>
               ) : marksheets.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="text-center py-8 text-muted">
-                    No documents found in database matching search criteria.
+                  <td colSpan="7" className="text-center py-8 text-muted">
+                    No submissions found matching criteria.
                   </td>
                 </tr>
               ) : (
-                marksheets.map((item) => (
-                  <tr key={item.verificationId}>
-                    <td className="font-mono font-bold text-cyan-400">
-                      {item.verificationId}
-                    </td>
-                    <td>
-                      <div className="file-cell">
-                        <FileCheck2 size={16} className="text-muted" />
-                        <span className="font-medium">{item.originalFileName}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <span className="badge badge-verified">
-                        <ShieldCheck size={12} /> {item.status}
-                      </span>
-                    </td>
-                    <td className="text-muted">
-                      {new Date(item.uploadedAt || item.createdAt).toLocaleDateString('en-GB', {
-                        day: '2-digit',
-                        month: 'short',
-                        year: 'numeric'
-                      })}
-                    </td>
-                    <td>
-                      <div className="table-actions-cell">
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => setSelectedMarksheet(item)}
-                        >
-                          <Eye size={14} /> View
-                        </button>
-                        <a
-                          href={getDownloadUrl(item.verificationId)}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="btn btn-outline-emerald btn-sm"
-                        >
-                          <Download size={14} /> Download
-                        </a>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                marksheets.map((item) => {
+                  const cand = item.candidateDetails || {};
+                  const inst = item.institutionalMatch || {};
+                  return (
+                    <tr key={item.verificationId}>
+                      <td className="font-mono font-bold text-cyan-400">
+                        {item.verificationId}
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span className="font-bold text-white">
+                            {cand.studentName || item.uploaderInfo?.name || 'Candidate'}
+                          </span>
+                          <span className="font-mono text-xs text-muted">
+                            Roll: {cand.rollNumber || 'N/A'} • {cand.courseOrDegree || 'B.Tech'}
+                          </span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="file-cell">
+                          <FileCheck2 size={16} className="text-muted" />
+                          <span className="font-medium" title={item.originalFileName}>
+                            {item.originalFileName.length > 25
+                              ? `${item.originalFileName.substring(0, 25)}...`
+                              : item.originalFileName}
+                          </span>
+                        </div>
+                      </td>
+                      <td>
+                        <span className={`badge ${
+                          item.status === 'VERIFIED' ? 'badge-verified' :
+                          item.status === 'REJECTED' ? 'badge-rejected' :
+                          item.status === 'NEEDS_REVIEW' ? 'badge-warning' : 'badge-pending'
+                        }`}>
+                          {item.status === 'VERIFIED' && <ShieldCheck size={12} />}
+                          {item.status === 'PENDING' && <Clock size={12} />}
+                          {item.status === 'NEEDS_REVIEW' && <AlertTriangle size={12} />}
+                          {item.status === 'REJECTED' && <XCircle size={12} />}
+                          {' '}{item.status}
+                        </span>
+                      </td>
+                      <td>
+                        {inst.matched ? (
+                          <span className="inst-mini-badge matched" title="Matched in authorized college master records">
+                            ✓ Master Record Match
+                          </span>
+                        ) : (
+                          <span className="inst-mini-badge not-found" title="Not found in pre-seeded records">
+                            ⚠ No Master Record
+                          </span>
+                        )}
+                      </td>
+                      <td className="text-muted text-xs">
+                        {new Date(item.uploadedAt || item.createdAt).toLocaleDateString('en-GB', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric'
+                        })}
+                      </td>
+                      <td>
+                        <div className="table-actions-cell">
+                          <Link
+                            to={`/review/${item.verificationId}`}
+                            className={`btn btn-sm ${
+                              item.status === 'PENDING' || item.status === 'NEEDS_REVIEW'
+                                ? 'btn-primary'
+                                : 'btn-secondary'
+                            }`}
+                          >
+                            <Eye size={14} /> Review &amp; Verify
+                          </Link>
+                          {item.status === 'VERIFIED' && (
+                            <a
+                              href={getDownloadUrl(item.verificationId)}
+                              target="_blank"
+                              rel="noreferrer"
+                              download
+                              className="btn btn-outline-emerald btn-sm"
+                              title="Download officially verified watermarked copy"
+                            >
+                              <Download size={14} />
+                            </a>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -273,6 +336,44 @@ const AdminDashboard = () => {
         }
 
         .text-amber-400 { color: #fbbf24; }
+
+        .inst-mini-badge {
+          display: inline-block;
+          font-size: 0.72rem;
+          font-weight: 600;
+          padding: 2px 8px;
+          border-radius: 4px;
+        }
+
+        .inst-mini-badge.matched {
+          background: rgba(16, 185, 129, 0.15);
+          color: #34d399;
+          border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .inst-mini-badge.not-found {
+          background: rgba(245, 158, 11, 0.15);
+          color: #fbbf24;
+          border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .badge-pending {
+          background: rgba(245, 158, 11, 0.2);
+          color: #fbbf24;
+          border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .badge-warning {
+          background: rgba(239, 68, 68, 0.2);
+          color: #f87171;
+          border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .badge-rejected {
+          background: rgba(239, 68, 68, 0.25);
+          color: #fca5a5;
+          border: 1px solid rgba(239, 68, 68, 0.4);
+        }
       `}</style>
     </div>
   );

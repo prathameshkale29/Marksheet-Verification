@@ -75,34 +75,35 @@ const Dashboard = () => {
       {/* Stats Cards Grid */}
       <div className="grid-4" style={{ marginBottom: '32px' }}>
         <StatsCard
-          title="Total Marksheets"
+          title="Total Submissions"
           value={stats.totalMarksheets}
           icon={FileCheck2}
           color="blue"
           description="Unique documents indexed"
         />
         <StatsCard
-          title="Verified Status"
+          title="Pending Approval"
+          value={stats.pendingCount || 0}
+          icon={Clock}
+          color="cyan"
+          badgeText="IN PROGRESS"
+          description="Awaiting student section review"
+        />
+        <StatsCard
+          title="Officially Verified"
           value={stats.verifiedCount}
           icon={ShieldCheck}
           color="emerald"
-          badgeText="VERIFIED"
-          description="Active verified records"
+          badgeText="APPROVED"
+          description="Sealed with QR & college logo"
         />
         <StatsCard
-          title="Duplicate Uploads"
+          title="Duplicate Intercepts"
           value={stats.duplicateUploads}
           icon={Copy}
           color="amber"
           badgeText="PREVENTED"
-          description="Matched Security Records"
-        />
-        <StatsCard
-          title="Today's Verifications"
-          value={stats.todaysVerifications}
-          icon={Clock}
-          color="cyan"
-          description="System activity last 24h"
+          description="Redundant submissions blocked"
         />
       </div>
 
@@ -112,16 +113,16 @@ const Dashboard = () => {
         <div className="glass-card workflow-card">
           <div className="card-title-row">
             <Cpu size={20} className="text-cyan-400" />
-            <h3>Cryptographic Verification Workflow</h3>
+            <h3>Institutional Verification Pipeline</h3>
           </div>
-          <p className="card-desc">How ShieldVerify guarantees zero duplicate document records.</p>
+          <p className="card-desc">End-to-end verification lifecycle for students and college administrators.</p>
 
           <div className="workflow-steps">
             <div className="step-item">
               <div className="step-num">1</div>
               <div className="step-info">
-                <strong>Upload & Validate</strong>
-                <span>PDF / Image format & size check</span>
+                <strong>Upload &amp; OCR Extraction</strong>
+                <span>Student submits PDF/Image; OCR auto-detects name, roll number, grades</span>
               </div>
             </div>
             <div className="step-arrow">↓</div>
@@ -129,29 +130,26 @@ const Dashboard = () => {
             <div className="step-item">
               <div className="step-num">2</div>
               <div className="step-info">
-                <strong>Digital Security Seal</strong>
-                <span>Compute tamper-proof fingerprint from file</span>
+                <strong>SHA-256 Hashing &amp; Duplicate Check</strong>
+                <span>Server verifies cryptographic uniqueness; exact duplicates return existing status</span>
+              </div>
+            </div>
+            <div className="step-arrow">↓</div>
+
+            <div className="step-item">
+              <div className="step-num">3</div>
+              <div className="step-info">
+                <strong>Staff Review &amp; Master Cross-Check</strong>
+                <span>College Student Section compares data against authorized college records</span>
               </div>
             </div>
             <div className="step-arrow">↓</div>
 
             <div className="step-item highlight-step">
-              <div className="step-num"><Database size={14} /></div>
+              <div className="step-num"><ShieldCheck size={14} /></div>
               <div className="step-info">
-                <strong>MongoDB Unique Index Search</strong>
-                <span>Instant provenance record comparison</span>
-              </div>
-            </div>
-            <div className="step-arrow">↓</div>
-
-            <div className="step-outcomes">
-              <div className="outcome-box match">
-                <span className="outcome-title">✓ RECORD MATCH</span>
-                <span className="outcome-text">Display <strong>Already Verified</strong> record without duplicating data.</span>
-              </div>
-              <div className="outcome-box new">
-                <span className="outcome-title">✦ NEW REGISTRATION</span>
-                <span className="outcome-text">Generate <strong>VER-2026-XXXXXX</strong> ID, embed watermark & save.</span>
+                <strong>Approval &amp; QR Sealed Document</strong>
+                <span>Approved records receive official College Logo, VERIFIED watermark, and live QR code</span>
               </div>
             </div>
           </div>

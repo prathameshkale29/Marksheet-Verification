@@ -14,8 +14,11 @@ const DocumentPreviewModal = ({ marksheet, onClose }) => {
   };
 
   const isPdf = marksheet.fileType === 'application/pdf';
-  const fileMediaUrl = getMediaUrl(marksheet.watermarkedFileUrl);
+  const fileMediaUrl = getMediaUrl(
+    marksheet.watermarkedFileUrl || marksheet.pendingFileUrl || marksheet.originalFileUrl
+  );
   const downloadUrl = getDownloadUrl(marksheet.verificationId);
+  const isVerified = marksheet.status === 'VERIFIED';
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -104,14 +107,25 @@ const DocumentPreviewModal = ({ marksheet, onClose }) => {
 
             {/* Actions */}
             <div className="modal-actions">
-              <a
-                href={downloadUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="btn btn-success flex-1"
-              >
-                <Download size={18} /> Download Watermarked Marksheet
-              </a>
+              {isVerified ? (
+                <a
+                  href={downloadUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  download
+                  className="btn btn-success flex-1"
+                >
+                  <Download size={18} /> Download Verified Marksheet
+                </a>
+              ) : (
+                <button
+                  className="btn btn-secondary flex-1 opacity-60"
+                  disabled
+                  title="Document must be approved by College Administration before verified download"
+                >
+                  <Download size={18} /> Download Locked (Status: {marksheet.status})
+                </button>
+              )}
               <a
                 href={fileMediaUrl}
                 target="_blank"

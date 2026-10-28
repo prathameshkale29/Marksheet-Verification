@@ -695,27 +695,44 @@ const UploadPage = () => {
             /* STEP 4: MONGODB ATLAS CLOUD RESULT PRESENTATION           */
             /* ========================================================= */
             <div className="glass-card result-wrapper">
-              {/* Success / Duplicate Banner */}
-              <div className={`result-banner ${result.isDuplicate ? 'warning-banner' : 'success-banner'}`}>
+              {/* Success / Pending / Duplicate Banner */}
+              <div className={`result-banner ${result.marksheet?.status === 'VERIFIED' ? 'success-banner' : 'warning-banner'}`}>
                 <div className="banner-icon-box">
-                  {result.isDuplicate ? (
+                  {result.marksheet?.status === 'VERIFIED' ? (
+                    <ShieldCheck size={36} color="#34d399" />
+                  ) : result.isDuplicate ? (
                     <AlertTriangle size={36} color="#fbbf24" />
                   ) : (
-                    <ShieldCheck size={36} color="#34d399" />
+                    <Clock size={36} color="#38bdf8" />
                   )}
                 </div>
                 <div>
                   <div className="banner-badge">
-                    {result.isDuplicate ? '⚠ ALREADY REGISTERED IN ATLAS' : '✓ REGISTERED IN MONGODB ATLAS'}
+                    {result.marksheet?.status === 'VERIFIED'
+                      ? '✓ OFFICIALLY VERIFIED'
+                      : result.marksheet?.status === 'NEEDS_REVIEW'
+                      ? '⚠ FLAGGED FOR SECTION REVIEW'
+                      : result.isDuplicate
+                      ? '⚠ RECORD ALREADY EXISTS'
+                      : '⏳ PENDING COLLEGE APPROVAL'}
                   </div>
                   <h2 className="banner-title">
-                    {result.isDuplicate 
-                      ? 'This marksheet is already verified & registered in MongoDB Atlas.' 
-                      : 'Marksheet successfully verified and saved to MongoDB Atlas!'}
+                    {result.marksheet?.status === 'VERIFIED'
+                      ? 'Marksheet is Officially Verified!'
+                      : result.marksheet?.status === 'NEEDS_REVIEW'
+                      ? 'Marksheet Submitted — Staff Review Required'
+                      : result.isDuplicate
+                      ? `Existing Submission Found (${result.marksheet?.status || result.status || 'PENDING'})`
+                      : 'Marksheet Submitted — Awaiting College Section Approval'}
                   </h2>
                   <p className="banner-sub">
                     {result.message}
                   </p>
+                  {result.marksheet?.status !== 'VERIFIED' && (
+                    <p style={{ marginTop: '8px', fontSize: '0.82rem', color: '#94a3b8' }}>
+                      📋 <strong>Next Step:</strong> Your marksheet has been securely indexed. The College Student Section staff will verify it against institutional records. Once approved, your certified watermarked document with the official college crest and QR verification seal will be issued.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -871,13 +888,23 @@ const UploadPage = () => {
                   <Award size={18} /> View Certified Review Report
                 </Link>
 
-                <a
-                  href={getDownloadUrl(result.marksheet?.verificationId)}
-                  className="btn btn-secondary btn-action-large"
-                  download
-                >
-                  <Download size={18} /> Download Watermarked Marksheet
-                </a>
+                {result.marksheet?.status === 'VERIFIED' ? (
+                  <a
+                    href={getDownloadUrl(result.marksheet?.verificationId)}
+                    className="btn btn-emerald btn-action-large"
+                    download
+                  >
+                    <Download size={18} /> Download Verified Watermarked Marksheet
+                  </a>
+                ) : (
+                  <button
+                    className="btn btn-secondary btn-action-large opacity-70"
+                    disabled
+                    title="Download will be unlocked once approved by College Section staff"
+                  >
+                    <Clock size={18} /> Download Unlocks After Approval
+                  </button>
+                )}
 
                 <button
                   className="btn btn-secondary btn-action-large"

@@ -2,32 +2,45 @@ const express = require('express');
 const router = express.Router();
 const upload = require('../middleware/upload');
 const marksheetController = require('../controllers/marksheetController');
+const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
-// 1. Upload, analyze & encode marksheet (records first-time originality in MongoDB)
-router.post('/upload', upload.single('file'), marksheetController.uploadAndVerifyMarksheet);
+// 1. Upload & submit marksheet for verification (sets PENDING/NEEDS_REVIEW status)
+router.post('/upload', authenticateToken, upload.single('file'), marksheetController.uploadAndVerifyMarksheet);
 
-// 2. Decode and verify document (determines marksheet validity and 100% originality match)
+// 2. Admin Approval of Marksheet (generates verified document with College Logo, Watermark, & QR code)
+router.post('/:verificationId/approve', authenticateToken, requireAdmin, marksheetController.approveMarksheet);
+
+// 3. Admin Rejection of Marksheet (mandatory rejection reason required)
+router.post('/:verificationId/reject', authenticateToken, requireAdmin, marksheetController.rejectMarksheet);
+
+// 4. Admin Correction of OCR extracted details
+router.put('/:verificationId/ocr-correct', authenticateToken, requireAdmin, marksheetController.correctMarksheetOCR);
+
+// 5. Public Verification Endpoint (via QR Code or direct lookup - minimal data disclosed)
+router.get('/public-verify/:verificationId', marksheetController.getPublicVerification);
+
+// 6. Decode and verify document / token
 router.post('/decode-verify', upload.single('file'), marksheetController.decodeAndVerifyDocument);
 
-// 3. Review marksheet across any mobile/desktop device
-router.get('/review/:verificationId', marksheetController.getMarksheetForReview);
+// 7. Review marksheet across devices (side-by-side review)
+router.get('/review/:verificationId', authenticateToken, marksheetController.getMarksheetForReview);
 
-// 4. Get verification stats for dashboard
+// 8. Get verification stats for dashboards
 router.get('/stats', marksheetController.getVerificationStats);
 
-// 5. Get verification attempt history log
+// 9. Get verification attempt history log
 router.get('/history', marksheetController.getVerificationHistory);
 
-// 6. Get all verified marksheets (with search/filter)
-router.get('/', marksheetController.getAllMarksheets);
+// 10. Get all marksheets (with search/filter/pagination)
+router.get('/', authenticateToken, marksheetController.getAllMarksheets);
 
-// 7. Get marksheet by verification ID
-router.get('/:verificationId', marksheetController.getMarksheetByVerificationId);
+// 11. Download watermarked document (ONLY allowed for VERIFIED marksheets)
+router.get('/:verificationId/download', authenticateToken, marksheetController.downloadWatermarkedDocument);
 
-// 8. Check marksheet status by SHA-256 hash
+// 12. Check marksheet status by SHA-256 hash
 router.get('/hash/:hash', marksheetController.getMarksheetByHash);
 
-// 9. Download watermarked document
-router.get('/:verificationId/download', marksheetController.downloadWatermarkedDocument);
+// 13. Get marksheet by verification ID
+router.get('/:verificationId', authenticateToken, marksheetController.getMarksheetByVerificationId);
 
 module.exports = router;

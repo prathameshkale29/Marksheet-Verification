@@ -94,8 +94,10 @@ const VerifiedDocuments = () => {
             className="filter-select"
           >
             <option value="ALL">All Statuses</option>
-            <option value="VERIFIED">Verified</option>
-            <option value="REVOKED">Revoked</option>
+            <option value="VERIFIED">Verified Only</option>
+            <option value="PENDING">Pending Approval</option>
+            <option value="NEEDS_REVIEW">Needs Review</option>
+            <option value="REJECTED">Rejected</option>
           </select>
           <button className="btn btn-secondary" onClick={fetchDocuments} title="Refresh data">
             <RefreshCw size={16} className={loading ? 'spin' : ''} />
@@ -162,12 +164,19 @@ const VerifiedDocuments = () => {
                       </span>
                     </td>
                     <td>
-                      <span className="badge badge-verified">
-                        <ShieldCheck size={12} /> {doc.status}
+                      <span className={`badge ${
+                        doc.status === 'VERIFIED' ? 'badge-verified' :
+                        doc.status === 'REJECTED' ? 'badge-rejected' :
+                        doc.status === 'NEEDS_REVIEW' ? 'badge-warning' : 'badge-pending'
+                      }`}>
+                        {doc.status === 'VERIFIED' && <ShieldCheck size={12} />}
+                        {doc.status}
                       </span>
                     </td>
                     <td>
-                      <span className="badge badge-new">APPLIED</span>
+                      <span className={`badge ${doc.watermarkApplied ? 'badge-verified' : 'badge-pending'}`}>
+                        {doc.watermarkApplied ? 'SEALED' : 'PENDING'}
+                      </span>
                     </td>
                     <td className="text-muted">
                       {new Date(doc.uploadedAt || doc.createdAt).toLocaleDateString('en-GB', {
@@ -188,19 +197,30 @@ const VerifiedDocuments = () => {
                         <button
                           className="btn btn-secondary btn-sm"
                           onClick={() => setSelectedMarksheet(doc)}
-                          title="View Watermarked Document"
+                          title="View Document Preview"
                         >
                           <Eye size={15} /> View
                         </button>
-                        <a
-                          href={getDownloadUrl(doc.verificationId)}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="btn btn-outline-emerald btn-sm"
-                          title="Download Watermarked File"
-                        >
-                          <Download size={15} /> Download
-                        </a>
+                        {doc.status === 'VERIFIED' ? (
+                          <a
+                            href={getDownloadUrl(doc.verificationId)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="btn btn-outline-emerald btn-sm"
+                            download
+                            title="Download Officially Verified Marksheet"
+                          >
+                            <Download size={15} /> Download
+                          </a>
+                        ) : (
+                          <button
+                            className="btn btn-secondary btn-sm opacity-50"
+                            disabled
+                            title="Download available only after College approval"
+                          >
+                            <Download size={15} /> Locked
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
