@@ -91,7 +91,7 @@ const extractTextStringsFromBuffer = (buffer) => {
 };
 
 /**
- * Perform server-side OCR on image buffer using red channel isolation to eliminate green watermarks
+ * Perform server-side OCR on image buffer using high-contrast grayscale normalization
  */
 const performServerSideOCR = async (buffer) => {
   if (!Tesseract) return { text: '', studentName: '', rollNumber: '', srNo: '', institution: '' };
@@ -99,16 +99,19 @@ const performServerSideOCR = async (buffer) => {
     const metadata = await sharp(buffer).metadata();
     let scale = 1.0;
     if (metadata.width && (metadata.width < 1400 || metadata.height < 1400)) {
-      scale = Math.min(2.5, 2200 / Math.max(metadata.width, metadata.height));
+      scale = Math.min(2.5, 2000 / Math.max(metadata.width, metadata.height));
+    } else if (metadata.width && (metadata.width > 2400 || metadata.height > 2400)) {
+      scale = 2000 / Math.max(metadata.width, metadata.height);
     }
     const targetW = Math.round(metadata.width * scale);
     const targetH = Math.round(metadata.height * scale);
 
-    // Red channel isolation eliminates green watermark text completely
+    // Enhanced grayscale with normalization and mild sharpening for crystal-clear character edges
     const preprocessed = await sharp(buffer)
-      .extractChannel('red')
       .resize(targetW, targetH, { kernel: 'lanczos3' })
-      .threshold(135)
+      .grayscale()
+      .normalize()
+      .sharpen({ sigma: 1, m1: 0.5, m2: 2 })
       .png()
       .toBuffer();
 
@@ -118,49 +121,67 @@ const performServerSideOCR = async (buffer) => {
 
     // 1. Extract Serial Number (e.g. StNo.: 1252568, Sr. No. 1252568)
     let srNo = '';
-    const srNoMatch = rawText.match(/(?:SR\.?\s*NO|SR\s*NO|SERIAL\s*NO|ST\.?\s*NO|CERTIFICATE\s*NO)[\s:.\-_|=]*([A-Za-z0-9]{4,15})/i);
+    const srNoMatch = rawText.match(/(?:SR\.?\s*NO\.?|SERIAL\s*NO\.?|ST\.?\s*NO\.?|CERTIFICATE\s*NO\.?)[\s:.\-_|=+*#©@~1]*([A-Za-z0-9]{4,16})/i);
     if (srNoMatch) {
       srNo = srNoMatch[1].trim();
     }
 
     // 2. Extract PRN / Roll Number
     let rollNumber = '';
-    const prnMatch = rawText.match(/(?:PRN|PRY|FRY|FRN|PAN|PEN|P\.?R\.?N\.?|REG(?:ISTRATION)?|ROLL|SEAT)[\s:.\-_|=1]*([0-9]{10,16})/i);
+    const prnMatch = rawText.match(/(?:PRN|P\.?R\.?N\.?|REG(?:ISTRATION)?(?:\s*NO\.?)?|ROLL(?:\s*NO\.?)?|SEAT(?:\s*NO\.?)?|ENROL(?:LMENT)?(?:\s*NO\.?)?)[\s:.\-_|=+*#©@~1]*([0-9]{8,18})/i);
     if (prnMatch) rollNumber = prnMatch[1].trim();
     if (!rollNumber) {
       const fourteenDigit = rawText.match(/\b([12][0-9]{11,15})\b/) || rawText.match(/\b([0-9]{10,16})\b/);
       if (fourteenDigit) rollNumber = fourteenDigit[1].trim();
     }
-    if (!rollNumber && /23046491612037|2304621613007|1304491613837/i.test(cleanText)) {
-      rollNumber = '23046491612037';
-    }
 
-    // 3. Extract Student Name
+    // 3. Extract Student / Candidate Name
     let studentName = '';
-    const nameLineMatch = rawText.match(/(?:STUDENT|CANDIDATE)[\s\S]{0,10}NAME[\s:.\-_|=1]+([A-Za-z\s]{4,40})/i);
-    if (nameLineMatch) {
-      let cand = nameLineMatch[1].trim().split('\n')[0].split(/[:|=]/)[0].replace(/[^A-Za-z\s]/g, '').replace(/\s+/g, ' ').trim();
-      cand = cand.replace(/\bRESET\b/i, '').replace(/\bTRE\b/i, '').trim();
-      cand = cand.replace(/\bCHAUD[A-Za-z]*\b/i, 'CHAUDHARI')
-                 .replace(/\b(?:UM|DM|0M)\b/i, 'OM')
-                 .replace(/\bH[A-Za-z]*NT\b/i, 'HEMANT');
-      if (cand.length >= 3 && !/CREDITS|SUBJECT|GRADE|BACHELOR|TECHNOLOGY|ENGINEERING/i.test(cand)) {
-        studentName = cand;
-      }
-    }
-    if (!studentName) {
-      const specificMatch = cleanText.match(/(?:CHAUD[A-Za-z]+)\s+(?:[A-Za-z0-9]+)\s+(?:H[A-Za-z]+NT)/i);
-      if (specificMatch) {
-        studentName = 'CHAUDHARI OM HEMANT';
+    const namePatterns = [
+      /(?:STUDENT(?:'?S)?|CANDIDATE(?:'?S)?|PUPIL|EXAMINEE)[\s\S]{0,12}NAME[\s:.\-_|=+*#©@~1]+\s*([A-Za-z\s.'’]{3,50})/i,
+      /(?:NAME\s+OF\s+(?:THE\s+)?(?:CANDIDATE|STUDENT))[\s:.\-_|=+*#©@~1]+\s*([A-Za-z\s.'’]{3,50})/i,
+      /\bNAME[\s:.\-_|=+*#©@~1]{1,5}([A-Z][A-Za-z\s.'’]{3,40})/
+    ];
+
+    for (const pat of namePatterns) {
+      const match = rawText.match(pat);
+      if (match && match[1]) {
+        let cand = match[1].split('\n')[0].trim();
+        cand = cand.split(/\s{2,}|[:|=~#]/)[0].trim();
+        cand = cand.replace(/\b(?:PRN|ROLL|SEAT|MOTHER|FATHER|SEMESTER|EXAMINATION|CREDITS|GRADE|BRANCH|COURSE|FACULTY|INSTITUTE|COLLEGE)\b[\s\S]*/i, '').trim();
+        cand = cand.replace(/^(?:MR\.?|MS\.?|MRS\.?|SHRI\.?|SMT\.?|KUMARI\.?)\s+/i, '');
+        cand = cand.replace(/([A-Z]{3,})II\b/g, '$1H');
+        cand = cand.replace(/[^A-Za-z\s.'’]/g, '').replace(/\s+/g, ' ').trim();
+
+        if (cand.length >= 3 && !/UNIVERSITY|INSTITUTE|TECHNOLOGICAL|ENGINEERING|COLLEGE|BOARD|COUNCIL|REPORT|STATEMENT|BACHELOR/i.test(cand)) {
+          studentName = cand;
+          break;
+        }
       }
     }
 
     // 4. Extract Institution
     let institution = '';
-    if (/Babasaheb\s*Ambedkar|Lonere|DBATU/i.test(cleanText)) {
-      institution = 'Dr. Babasaheb Ambedkar Technological University';
-    } else if (/BAJAJ\s*INSTITUTE/i.test(cleanText)) {
-      institution = 'Bajaj Institute of Technology, Wardha';
+    const instMatch = rawText.match(/(?:INSTITUTE|COLLEGE|SCHOOL)[\s\-_.]*NAME[\s:.\-_|=+*#©@~1]+\s*([A-Za-z0-9\s,.'’\-]{4,75})/i);
+    if (instMatch && instMatch[1]) {
+      let inst = instMatch[1].split('\n')[0].replace(/[^A-Za-z0-9\s,.'’\-]/g, '').trim();
+      inst = inst.replace(/\b(?:PROGRAMME|PROGRAM|BRANCH|COURSE|FACULTY|SEMESTER|PRN)\b[\s\S]*/i, '').trim();
+      if (inst.length > 5) {
+        institution = inst;
+      }
+    }
+
+    if (!institution) {
+      if (/Babasaheb\s*Ambedkar|Lonere|DBATU/i.test(cleanText)) {
+        institution = 'Dr. Babasaheb Ambedkar Technological University';
+      } else if (/Bajaj\s*Institute/i.test(cleanText)) {
+        institution = 'Bajaj Institute of Technology, Wardha';
+      } else {
+        const headerUnivMatch = rawText.match(/([A-Z][A-Za-z\s.,]{4,65}(?:University|Institute of Technology|Board|Council))/i);
+        if (headerUnivMatch && headerUnivMatch[1]) {
+          institution = headerUnivMatch[1].split('\n')[0].trim();
+        }
+      }
     }
 
     return { text: cleanText, rollNumber, studentName, srNo, institution };

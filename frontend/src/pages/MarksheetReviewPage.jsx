@@ -612,7 +612,7 @@ const MarksheetReviewPage = () => {
                     type="text"
                     value={editReason}
                     onChange={(e) => setEditReason(e.target.value)}
-                    placeholder="e.g. OCR misrecognized 'O' as '0' in candidate name"
+                    placeholder="Reason for OCR correction (logged in audit trail)"
                     className="form-input-sm"
                   />
                 </div>
@@ -762,7 +762,7 @@ const MarksheetReviewPage = () => {
                 rows={2}
                 value={approvalNotes}
                 onChange={(e) => setApprovalNotes(e.target.value)}
-                placeholder="e.g. Cross-checked with semester 6 tabulation sheet."
+                placeholder="Cross-checked notes or internal verification remarks"
                 className="form-textarea-sm"
               />
             </div>
@@ -804,7 +804,7 @@ const MarksheetReviewPage = () => {
                 rows={3}
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
-                placeholder="e.g. Candidate roll number not found in institutional graduation records, or document appears modified."
+                placeholder="Mandatory reason for rejection (recorded in official audit trail)"
                 className="form-textarea-sm"
               />
             </div>

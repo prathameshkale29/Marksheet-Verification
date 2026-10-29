@@ -487,7 +487,20 @@ const UploadPage = () => {
               {ocrScanning && (
                 <div className="ocr-scanning-banner">
                   <div className="spinner-scan" />
-                  <span>🔍 AI Optical Character Recognition scanning marksheet text ({ocrProgress}%)...</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <span style={{ fontWeight: 600 }}>
+                        {ocrProgress < 25 && 'Enhancing image contrast & removing watermarks...'}
+                        {ocrProgress >= 25 && ocrProgress < 40 && 'Initializing AI OCR Neural Network...'}
+                        {ocrProgress >= 40 && ocrProgress < 95 && `Extracting marksheet typography & credentials (${ocrProgress}%)...`}
+                        {ocrProgress >= 95 && 'Formatting verified candidate metadata...'}
+                      </span>
+                      <span style={{ fontSize: '0.8rem', opacity: 0.9 }}>{ocrProgress}%</span>
+                    </div>
+                    <div style={{ width: '100%', height: '4px', background: 'rgba(56, 189, 248, 0.2)', borderRadius: '2px', overflow: 'hidden' }}>
+                      <div style={{ width: `${ocrProgress}%`, height: '100%', background: '#38bdf8', transition: 'width 0.3s ease' }} />
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -540,7 +553,7 @@ const UploadPage = () => {
                         type="text"
                         value={candidateName}
                         onChange={(e) => setCandidateName(e.target.value)}
-                        placeholder="e.g. CHAUDHARI OM HEMANT"
+                        placeholder="Candidate full name"
                         className="cred-input"
                       />
                     </div>
@@ -553,7 +566,7 @@ const UploadPage = () => {
                         type="text"
                         value={prnNumber}
                         onChange={(e) => setPrnNumber(e.target.value)}
-                        placeholder="e.g. 23046491612037"
+                        placeholder="Permanent Registration Number (PRN)"
                         className="cred-input"
                       />
                     </div>
@@ -566,7 +579,7 @@ const UploadPage = () => {
                         type="text"
                         value={rollNumber}
                         onChange={(e) => setRollNumber(e.target.value)}
-                        placeholder="e.g. 23046491612037"
+                        placeholder="Roll or seat number"
                         className="cred-input"
                       />
                     </div>
@@ -579,7 +592,7 @@ const UploadPage = () => {
                         type="text"
                         value={institutionName}
                         onChange={(e) => setInstitutionName(e.target.value)}
-                        placeholder="e.g. Dr. Babasaheb Ambedkar Technological University"
+                        placeholder="University, College or Board name"
                         className="cred-input"
                       />
                     </div>
@@ -592,7 +605,7 @@ const UploadPage = () => {
                         type="text"
                         value={passingYear}
                         onChange={(e) => setPassingYear(e.target.value)}
-                        placeholder="e.g. 2024"
+                        placeholder="Passing year (YYYY)"
                         className="cred-input"
                       />
                     </div>
@@ -605,7 +618,7 @@ const UploadPage = () => {
                         type="text"
                         value={courseOrDegree}
                         onChange={(e) => setCourseOrDegree(e.target.value)}
-                        placeholder="e.g. Bachelor of Technology in Computer Engineering"
+                        placeholder="Course, degree or branch"
                         className="cred-input"
                       />
                     </div>
@@ -618,7 +631,7 @@ const UploadPage = () => {
                         type="text"
                         value={totalMarksOrGrade}
                         onChange={(e) => setTotalMarksOrGrade(e.target.value)}
-                        placeholder="e.g. SGPA: 8.75 / CGPA: 8.50"
+                        placeholder="SGPA, CGPA or percentage"
                         className="cred-input"
                       />
                     </div>
@@ -976,7 +989,7 @@ const UploadPage = () => {
                 type="text"
                 value={verifyId}
                 onChange={(e) => setVerifyId(e.target.value)}
-                placeholder="e.g. VER-2026-000001"
+                placeholder="VER-YYYY-XXXXXX"
                 className="cred-input"
               />
             </div>
@@ -1469,7 +1482,13 @@ const UploadPage = () => {
           font-size: 0.9rem;
           outline: none;
           box-sizing: border-box;
-          transition: border-color 0.2s ease;
+          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .cred-input::placeholder {
+          color: #64748b;
+          font-size: 0.83rem;
+          font-weight: 400;
         }
 
         .cred-input:focus {

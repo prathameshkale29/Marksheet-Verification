@@ -99,7 +99,7 @@ const RegisterPage = () => {
                 <input
                   id="reg-roll"
                   type="text"
-                  placeholder="e.g. 23046491612037"
+                  placeholder="Student PRN or Roll Number"
                   value={formData.rollNumber}
                   onChange={handleChange('rollNumber')}
                 />
